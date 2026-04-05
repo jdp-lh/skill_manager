@@ -82,12 +82,12 @@ export const iconMap: Record<string, React.ComponentType<{ className?: string }>
 
 export const AVAILABLE_ICONS = Object.keys(iconMap);
 
-type ToolIconProps = {
+type AgentIconProps = {
   icon: string;
   className?: string;
 };
 
-export function ToolIcon({ icon, className = "h-6 w-6" }: ToolIconProps) {
+export function AgentIcon({ icon, className = "h-6 w-6" }: AgentIconProps) {
   const Icon = iconMap[icon] || Cpu;
   return <Icon className={className} />;
 }

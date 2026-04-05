@@ -12,7 +12,7 @@ import {
 } from "../lib/api";
 import { UserRole } from "../lib/permissions";
 
-export type AppView = "skills" | "tools" | "marketplace";
+export type AppView = "skills" | "agents" | "marketplace";
 
 export type Notice = {
   type: "success" | "error";

@@ -122,31 +122,31 @@ fn cleanup_target_dir(
 }
 
 #[tauri::command]
-pub fn toggle_link(skill_name: String, tool_id: String, enable: bool) -> Result<(), String> {
+pub fn toggle_link(skill_name: String, agent_id: String, enable: bool) -> Result<(), String> {
     let mut config = get_config()?;
     
     let links = config.links.entry(skill_name.clone()).or_insert_with(Vec::new);
     if enable {
-        if !links.contains(&tool_id) {
-            links.push(tool_id.clone());
+        if !links.contains(&agent_id) {
+            links.push(agent_id.clone());
         }
     } else {
-        links.retain(|t| t != &tool_id);
+        links.retain(|t| t != &agent_id);
     }
     
     let storage_path = PathBuf::from(expand_tilde(&config.storage_path));
     let skill_path = storage_path.join(&skill_name);
     
-    if let Some(tool) = config.tools.get(&tool_id) {
-        if !tool.enabled {
-            return Err(format!("Tool {} is disabled", tool_id));
+    if let Some(agent) = config.agents.get(&agent_id) {
+        if !agent.enabled {
+            return Err(format!("Agent {} is disabled", agent_id));
         }
 
-        if tool.target_dir.trim().is_empty() {
-            return Err(format!("Tool {} target directory is not configured", tool_id));
+        if agent.target_dir.trim().is_empty() {
+            return Err(format!("Agent {} target directory is not configured", agent_id));
         }
 
-        let target_dir = PathBuf::from(expand_tilde(&tool.target_dir));
+        let target_dir = PathBuf::from(expand_tilde(&agent.target_dir));
         let dst = target_dir.join(&skill_name);
         
         if enable {
@@ -169,17 +169,17 @@ pub fn sync_all() -> Result<(), String> {
     let skill_names = list_storage_skill_names(&storage_path)?;
     config
         .links
-        .retain(|skill_name, tool_ids| skill_names.contains(skill_name) && !tool_ids.is_empty());
+        .retain(|skill_name, agent_ids| skill_names.contains(skill_name) && !agent_ids.is_empty());
 
-    for (tool_id, tool) in &config.tools {
-        let expected_skill_names: HashSet<String> = if tool.enabled && !tool.target_dir.trim().is_empty() {
+    for (agent_id, agent) in &config.agents {
+        let expected_skill_names: HashSet<String> = if agent.enabled && !agent.target_dir.trim().is_empty() {
             skill_names
             .iter()
             .filter(|skill_name| {
                 config
                     .links
                     .get(*skill_name)
-                    .map(|tool_ids| tool_ids.contains(tool_id))
+                    .map(|agent_ids| agent_ids.contains(agent_id))
                     .unwrap_or(false)
             })
             .cloned()
@@ -188,11 +188,11 @@ pub fn sync_all() -> Result<(), String> {
             HashSet::new()
         };
 
-        if tool.target_dir.trim().is_empty() {
+        if agent.target_dir.trim().is_empty() {
             continue;
         }
 
-        let target_dir = PathBuf::from(expand_tilde(&tool.target_dir));
+        let target_dir = PathBuf::from(expand_tilde(&agent.target_dir));
         if !target_dir.exists() {
             fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
         }

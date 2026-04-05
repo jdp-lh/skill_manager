@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AppConfig,
   SkillEntry,
-  ToolConfig,
-  ToolSkillSettings,
+  AgentConfig,
+  AgentSkillSettings,
 } from "../lib/api";
 import {
   Search,
@@ -13,22 +13,22 @@ import {
 
 type SkillConfigModalProps = {
   labels: Record<string, string>;
-  toolId: string;
-  tool: ToolConfig;
+  agentId: string;
+  agent: AgentConfig;
   config: AppConfig;
   skills: SkillEntry[];
   saving: boolean;
   onClose: () => void;
   onSave: (
     links: string[],
-    settings: Record<string, ToolSkillSettings>,
+    settings: Record<string, AgentSkillSettings>,
   ) => void;
 };
 
 export function SkillConfigModal({
   labels,
-  toolId,
-  tool,
+  agentId,
+  agent,
   config,
   skills,
   saving,
@@ -38,7 +38,7 @@ export function SkillConfigModal({
   const associatedLinks = useMemo(
     () =>
       Object.entries(config.links)
-        .filter(([, toolIds]) => toolIds.includes(toolId))
+        .filter(([, agentIds]) => agentIds.includes(agentId))
         .map(([skillName]) => skillName)
         .sort((left, right) =>
           left.localeCompare(right, undefined, {
@@ -46,7 +46,7 @@ export function SkillConfigModal({
             sensitivity: "base",
           }),
         ),
-    [config.links, toolId],
+    [config.links, agentId],
   );
 
   const [links, setLinks] = useState<string[]>(associatedLinks);
@@ -110,7 +110,7 @@ export function SkillConfigModal({
       Object.fromEntries(
         links.map((skillName) => [
           skillName,
-          config.tool_skill_settings[toolId]?.[skillName] || {
+          config.agent_skill_settings[agentId]?.[skillName] || {
             enabled: true,
             priority: 0,
             parameters: {},
@@ -148,7 +148,7 @@ export function SkillConfigModal({
         <div className="flex items-start justify-between border-b border-gray-200 bg-white px-6 py-5">
           <div>
             <h3 className="text-[20px] font-semibold tracking-[-0.02em] text-gray-950">
-              {labels.skillConfigTitle.replace("{agent}", tool.name)}
+              {labels.skillConfigTitle.replace("{agent}", agent.name)}
             </h3>
           </div>
           <button

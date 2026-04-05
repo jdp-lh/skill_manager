@@ -1,46 +1,46 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ToolConfig } from "../lib/api";
+import { AgentConfig } from "../lib/api";
 import { ChevronDown, X } from "lucide-react";
-import { ToolIcon, AVAILABLE_ICONS } from "./ToolIcon";
+import { AgentIcon, AVAILABLE_ICONS } from "./AgentIcon";
 
-export type ToolFormValue = {
+export type AgentFormValue = {
   id: string;
-  tool: ToolConfig;
+  agent: AgentConfig;
 };
 
-type ToolFormModalProps = {
+type AgentFormModalProps = {
   title: string;
   labels: Record<string, string>;
-  initialValue: ToolFormValue;
+  initialValue: AgentFormValue;
   existingIds: string[];
   onClose: () => void;
-  onSubmit: (value: ToolFormValue) => void;
+  onSubmit: (value: AgentFormValue) => void;
 };
 
-const buildDefaultSkillsPath = (toolId: string) => {
-  const trimmedToolId = toolId.trim();
-  return trimmedToolId ? `~/.${trimmedToolId}/skills` : "";
+const buildDefaultSkillsPath = (agentId: string) => {
+  const trimmedAgentId = agentId.trim();
+  return trimmedAgentId ? `~/.${trimmedAgentId}/skills` : "";
 };
 
-export function ToolFormModal({
+export function AgentFormModal({
   title,
   labels,
   initialValue,
   existingIds,
   onClose,
   onSubmit,
-}: ToolFormModalProps) {
+}: AgentFormModalProps) {
   const [id, setId] = useState(initialValue.id);
-  const [name, setName] = useState(initialValue.tool.name);
-  const [description, setDescription] = useState(initialValue.tool.description);
-  const [icon, setIcon] = useState(initialValue.tool.icon || "Bot");
+  const [name, setName] = useState(initialValue.agent.name);
+  const [description, setDescription] = useState(initialValue.agent.description);
+  const [icon, setIcon] = useState(initialValue.agent.icon || "Bot");
   const [skillsPath, setSkillsPath] = useState(
-    initialValue.tool.target_dir || buildDefaultSkillsPath(initialValue.id)
+    initialValue.agent.target_dir || buildDefaultSkillsPath(initialValue.id)
   );
   const [error, setError] = useState("");
   const [autoSkillsPath, setAutoSkillsPath] = useState(
-    !initialValue.tool.target_dir ||
-      initialValue.tool.target_dir === buildDefaultSkillsPath(initialValue.id)
+    !initialValue.agent.target_dir ||
+      initialValue.agent.target_dir === buildDefaultSkillsPath(initialValue.id)
   );
 
   const duplicated = useMemo(
@@ -52,15 +52,15 @@ export function ToolFormModal({
     event.preventDefault();
     const trimmedId = id.trim();
     if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
-      setError(labels.invalidToolId);
+      setError(labels.invalidAgentId);
       return;
     }
     if (duplicated) {
-      setError(labels.duplicateToolId);
+      setError(labels.duplicateAgentId);
       return;
     }
     if (!name.trim()) {
-      setError(labels.toolNameRequired);
+      setError(labels.agentNameRequired);
       return;
     }
     if (!skillsPath.trim()) {
@@ -70,13 +70,13 @@ export function ToolFormModal({
 
     onSubmit({
       id: trimmedId,
-      tool: {
+      agent: {
         name: name.trim(),
         description: description.trim(),
         icon: icon.trim() || "Bot",
         config_path: "",
         target_dir: skillsPath.trim(),
-        tags: initialValue.tool.tags || [],
+        tags: initialValue.agent.tags || [],
         enabled: true,
       },
     });
@@ -119,7 +119,7 @@ export function ToolFormModal({
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.toolId}</span>
+              <span className="text-sm font-medium text-gray-700">{labels.agentId}</span>
               <input
                 value={id}
                 onChange={(event) => {
@@ -130,7 +130,7 @@ export function ToolFormModal({
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.toolName}</span>
+              <span className="text-sm font-medium text-gray-700">{labels.agentName}</span>
               <input
                 value={name}
                 onChange={(event) => {
@@ -157,7 +157,7 @@ export function ToolFormModal({
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <ToolIcon icon={icon} className="h-5 w-5 text-gray-700" />
+                    <AgentIcon icon={icon} className="h-5 w-5 text-gray-700" />
                     <span className="text-sm text-gray-700">{icon}</span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -183,7 +183,7 @@ export function ToolFormModal({
                         }`}
                         title={iconName}
                       >
-                        <ToolIcon icon={iconName} className="h-5 w-5" />
+                        <AgentIcon icon={iconName} className="h-5 w-5" />
                       </button>
                     ))}
                   </div>
@@ -202,7 +202,7 @@ export function ToolFormModal({
                   setAutoSkillsPath(nextValue.trim() === buildDefaultSkillsPath(id));
                   setError("");
                 }}
-                placeholder={buildDefaultSkillsPath(id) || "~/.tool-id/skills"}
+                placeholder={buildDefaultSkillsPath(id) || "~/.agent-id/skills"}
                 className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </label>

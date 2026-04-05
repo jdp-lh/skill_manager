@@ -8,7 +8,7 @@ fn default_enabled() -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Tool {
+pub struct Agent {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
@@ -26,7 +26,7 @@ pub struct Tool {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ToolSkillSettings {
+pub struct AgentSkillSettings {
     #[serde(default = "default_enabled")]
     pub enabled: bool,
     #[serde(default)]
@@ -35,7 +35,7 @@ pub struct ToolSkillSettings {
     pub parameters: HashMap<String, String>,
 }
 
-impl Default for ToolSkillSettings {
+impl Default for AgentSkillSettings {
     fn default() -> Self {
         Self {
             enabled: true,
@@ -50,10 +50,10 @@ pub struct AppConfig {
     #[serde(default)]
     pub config_version: u32,
     pub storage_path: String,
-    pub tools: HashMap<String, Tool>,
+    pub agents: HashMap<String, Agent>,
     pub links: HashMap<String, Vec<String>>,
     #[serde(default)]
-    pub tool_skill_settings: HashMap<String, HashMap<String, ToolSkillSettings>>,
+    pub agent_skill_settings: HashMap<String, HashMap<String, AgentSkillSettings>>,
 }
 
 const CURRENT_CONFIG_VERSION: u32 = 1;
@@ -77,11 +77,11 @@ pub fn get_config_path() -> PathBuf {
     path
 }
 
-fn default_tools() -> HashMap<String, Tool> {
-    let mut tools = HashMap::new();
-    tools.insert(
+fn default_agents() -> HashMap<String, Agent> {
+    let mut agents = HashMap::new();
+    agents.insert(
         "claude".to_string(),
-        Tool {
+        Agent {
             name: "Claude Code".to_string(),
             target_dir: expand_tilde("~/.claude/skills"),
             config_path: expand_tilde("~/.claude"),
@@ -91,9 +91,9 @@ fn default_tools() -> HashMap<String, Tool> {
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "codex".to_string(),
-        Tool {
+        Agent {
             name: "Codex".to_string(),
             target_dir: expand_tilde("~/.codex/skills"),
             config_path: expand_tilde("~/.codex"),
@@ -103,9 +103,9 @@ fn default_tools() -> HashMap<String, Tool> {
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "opencode".to_string(),
-        Tool {
+        Agent {
             name: "Opencode".to_string(),
             target_dir: expand_tilde("~/.opencode/skills"),
             config_path: expand_tilde("~/.opencode"),
@@ -115,9 +115,9 @@ fn default_tools() -> HashMap<String, Tool> {
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "cursor".to_string(),
-        Tool {
+        Agent {
             name: "Cursor".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
@@ -127,33 +127,33 @@ fn default_tools() -> HashMap<String, Tool> {
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "windsurf".to_string(),
-        Tool {
+        Agent {
             name: "Windsurf".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
-            description: "Windsurf 开发环境的工具与技能接入。".to_string(),
+            description: "Windsurf 开发环境的agent与技能接入。".to_string(),
             icon: "Wind".to_string(),
             tags: vec!["editor".to_string(), "agent".to_string()],
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "cline".to_string(),
-        Tool {
+        Agent {
             name: "Cline".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
-            description: "为 Cline 准备的可配置工具卡片。".to_string(),
+            description: "为 Cline 准备的可配置agent卡片。".to_string(),
             icon: "Wrench".to_string(),
             tags: vec!["extension".to_string(), "agent".to_string()],
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "continue".to_string(),
-        Tool {
+        Agent {
             name: "Continue".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
@@ -163,31 +163,31 @@ fn default_tools() -> HashMap<String, Tool> {
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "aider".to_string(),
-        Tool {
+        Agent {
             name: "Aider".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
-            description: "Aider 终端协作编程工具。".to_string(),
+            description: "Aider 终端协作编程agent。".to_string(),
             icon: "TerminalSquare".to_string(),
             tags: vec!["cli".to_string(), "agent".to_string()],
             enabled: true,
         },
     );
-    tools.insert(
+    agents.insert(
         "gemini".to_string(),
-        Tool {
+        Agent {
             name: "Gemini CLI".to_string(),
             target_dir: String::new(),
             config_path: String::new(),
-            description: "Gemini CLI 的工具与技能接入位。".to_string(),
+            description: "Gemini CLI 的agent与技能接入位。".to_string(),
             icon: "Sparkles".to_string(),
             tags: vec!["assistant".to_string(), "cli".to_string()],
             enabled: true,
         },
     );
-    tools
+    agents
 }
 
 fn create_default_config() -> AppConfig {
@@ -195,45 +195,45 @@ fn create_default_config() -> AppConfig {
     AppConfig {
         config_version: CURRENT_CONFIG_VERSION,
         storage_path,
-        tools: default_tools(),
+        agents: default_agents(),
         links: HashMap::new(),
-        tool_skill_settings: HashMap::new(),
+        agent_skill_settings: HashMap::new(),
     }
 }
 
-fn merge_default_tools(mut config: AppConfig) -> AppConfig {
-    for (tool_id, tool) in default_tools() {
-        config.tools.entry(tool_id).or_insert(tool);
+fn merge_default_agents(mut config: AppConfig) -> AppConfig {
+    for (agent_id, agent) in default_agents() {
+        config.agents.entry(agent_id).or_insert(agent);
     }
     config
 }
 
 fn migrate_config(mut config: AppConfig) -> AppConfig {
     if config.config_version < CURRENT_CONFIG_VERSION {
-        config = merge_default_tools(config);
+        config = merge_default_agents(config);
     }
     config.config_version = CURRENT_CONFIG_VERSION;
     config
 }
 
-fn is_valid_tool_id(tool_id: &str) -> bool {
-    !tool_id.is_empty()
-        && tool_id
+fn is_valid_agent_id(agent_id: &str) -> bool {
+    !agent_id.is_empty()
+        && agent_id
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
 }
 
 fn normalize_links(
     links: HashMap<String, Vec<String>>,
-    tools: &HashMap<String, Tool>,
+    agents: &HashMap<String, Agent>,
 ) -> HashMap<String, Vec<String>> {
     let mut normalized = HashMap::new();
 
-    for (skill_name, tool_ids) in links {
+    for (skill_name, agent_ids) in links {
         let mut filtered = Vec::new();
-        for tool_id in tool_ids {
-            if tools.contains_key(&tool_id) && !filtered.contains(&tool_id) {
-                filtered.push(tool_id);
+        for agent_id in agent_ids {
+            if agents.contains_key(&agent_id) && !filtered.contains(&agent_id) {
+                filtered.push(agent_id);
             }
         }
 
@@ -245,28 +245,28 @@ fn normalize_links(
     normalized
 }
 
-fn normalize_tool_skill_settings(
-    tool_skill_settings: HashMap<String, HashMap<String, ToolSkillSettings>>,
-    tools: &HashMap<String, Tool>,
+fn normalize_agent_skill_settings(
+    agent_skill_settings: HashMap<String, HashMap<String, AgentSkillSettings>>,
+    agents: &HashMap<String, Agent>,
     links: &HashMap<String, Vec<String>>,
-) -> HashMap<String, HashMap<String, ToolSkillSettings>> {
+) -> HashMap<String, HashMap<String, AgentSkillSettings>> {
     let mut normalized = HashMap::new();
 
-    for (tool_id, skill_settings) in tool_skill_settings {
-        if !tools.contains_key(&tool_id) {
+    for (agent_id, skill_settings) in agent_skill_settings {
+        if !agents.contains_key(&agent_id) {
             continue;
         }
 
-        let mut per_tool = HashMap::new();
+        let mut per_agent = HashMap::new();
         for (skill_name, settings) in skill_settings {
             let is_linked = links
                 .get(&skill_name)
-                .map(|tool_ids| tool_ids.contains(&tool_id))
+                .map(|agent_ids| agent_ids.contains(&agent_id))
                 .unwrap_or(false);
             if is_linked {
-                per_tool.insert(
+                per_agent.insert(
                     skill_name,
-                    ToolSkillSettings {
+                    AgentSkillSettings {
                         enabled: settings.enabled,
                         priority: settings.priority,
                         parameters: settings.parameters,
@@ -275,8 +275,8 @@ fn normalize_tool_skill_settings(
             }
         }
 
-        if !per_tool.is_empty() {
-            normalized.insert(tool_id, per_tool);
+        if !per_agent.is_empty() {
+            normalized.insert(agent_id, per_agent);
         }
     }
 
@@ -291,42 +291,42 @@ fn normalize_config(config: AppConfig) -> Result<AppConfig, String> {
 
     fs::create_dir_all(&storage_path).map_err(|e| e.to_string())?;
 
-    let mut tools = HashMap::new();
-    for (tool_id, tool) in config.tools {
-        let normalized_tool_id = tool_id.trim().to_string();
-        if !is_valid_tool_id(&normalized_tool_id) {
-            return Err(format!("Invalid tool id: {}", tool_id));
+    let mut agents = HashMap::new();
+    for (agent_id, agent) in config.agents {
+        let normalized_agent_id = agent_id.trim().to_string();
+        if !is_valid_agent_id(&normalized_agent_id) {
+            return Err(format!("Invalid agent id: {}", agent_id));
         }
 
-        let target_dir = if tool.target_dir.trim().is_empty() {
+        let target_dir = if agent.target_dir.trim().is_empty() {
             String::new()
         } else {
-            expand_tilde(tool.target_dir.trim())
+            expand_tilde(agent.target_dir.trim())
         };
 
-        tools.insert(
-            normalized_tool_id.clone(),
-            Tool {
-                name: if tool.name.trim().is_empty() {
-                    normalized_tool_id
+        agents.insert(
+            normalized_agent_id.clone(),
+            Agent {
+                name: if agent.name.trim().is_empty() {
+                    normalized_agent_id
                 } else {
-                    tool.name.trim().to_string()
+                    agent.name.trim().to_string()
                 },
                 target_dir,
-                config_path: if tool.config_path.trim().is_empty() {
+                config_path: if agent.config_path.trim().is_empty() {
                     String::new()
                 } else {
-                    expand_tilde(tool.config_path.trim())
+                    expand_tilde(agent.config_path.trim())
                 },
-                description: tool.description.trim().to_string(),
-                icon: if tool.icon.trim().is_empty() {
+                description: agent.description.trim().to_string(),
+                icon: if agent.icon.trim().is_empty() {
                     "Bot".to_string()
                 } else {
-                    tool.icon.trim().to_string()
+                    agent.icon.trim().to_string()
                 },
                 tags: {
                     let mut tags = Vec::new();
-                    for tag in tool.tags {
+                    for tag in agent.tags {
                         let tag = tag.trim().to_string();
                         if !tag.is_empty() && !tags.contains(&tag) {
                             tags.push(tag);
@@ -335,21 +335,21 @@ fn normalize_config(config: AppConfig) -> Result<AppConfig, String> {
                     tags.sort_by(|left, right| left.to_lowercase().cmp(&right.to_lowercase()));
                     tags
                 },
-                enabled: tool.enabled,
+                enabled: agent.enabled,
             },
         );
     }
 
-    let links = normalize_links(config.links, &tools);
-    let tool_skill_settings =
-        normalize_tool_skill_settings(config.tool_skill_settings, &tools, &links);
+    let links = normalize_links(config.links, &agents);
+    let agent_skill_settings =
+        normalize_agent_skill_settings(config.agent_skill_settings, &agents, &links);
 
     Ok(AppConfig {
         config_version: CURRENT_CONFIG_VERSION,
         storage_path,
-        tools,
+        agents,
         links,
-        tool_skill_settings,
+        agent_skill_settings,
     })
 }
 
@@ -366,19 +366,19 @@ fn remove_link_path(path: &Path) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-fn cleanup_removed_tool_links(previous: &AppConfig, current: &AppConfig) -> Result<(), String> {
+fn cleanup_removed_agent_links(previous: &AppConfig, current: &AppConfig) -> Result<(), String> {
     let storage_path = PathBuf::from(&current.storage_path);
 
-    for (tool_id, tool) in &previous.tools {
-        if current.tools.contains_key(tool_id) {
+    for (agent_id, agent) in &previous.agents {
+        if current.agents.contains_key(agent_id) {
             continue;
         }
 
-        if tool.target_dir.trim().is_empty() {
+        if agent.target_dir.trim().is_empty() {
             continue;
         }
 
-        let target_dir = PathBuf::from(expand_tilde(&tool.target_dir));
+        let target_dir = PathBuf::from(expand_tilde(&agent.target_dir));
         if !target_dir.exists() {
             continue;
         }
@@ -435,7 +435,7 @@ pub fn save_config(config: AppConfig) -> Result<(), String> {
     let normalized = normalize_config(config)?;
 
     if let Some(previous) = previous_config {
-        cleanup_removed_tool_links(&previous, &normalized)?;
+        cleanup_removed_agent_links(&previous, &normalized)?;
     }
 
     let content = serde_json::to_string_pretty(&normalized).map_err(|e| e.to_string())?;
@@ -460,34 +460,34 @@ mod tests {
     }
 
     #[test]
-    fn merge_default_tools_adds_common_agents() {
+    fn merge_default_agents_adds_common_agents() {
         let config = AppConfig {
             config_version: CURRENT_CONFIG_VERSION,
             storage_path: unique_temp_dir("merge-defaults"),
-            tools: HashMap::new(),
+            agents: HashMap::new(),
             links: HashMap::new(),
-            tool_skill_settings: HashMap::new(),
+            agent_skill_settings: HashMap::new(),
         };
 
-        let merged = merge_default_tools(config);
+        let merged = merge_default_agents(config);
 
-        assert!(merged.tools.contains_key("claude"));
-        assert!(merged.tools.contains_key("codex"));
-        assert!(merged.tools.contains_key("opencode"));
-        assert!(merged.tools.contains_key("cursor"));
-        assert!(merged.tools.contains_key("windsurf"));
-        assert!(merged.tools.contains_key("cline"));
-        assert!(merged.tools.contains_key("continue"));
-        assert!(merged.tools.contains_key("aider"));
-        assert!(merged.tools.contains_key("gemini"));
+        assert!(merged.agents.contains_key("claude"));
+        assert!(merged.agents.contains_key("codex"));
+        assert!(merged.agents.contains_key("opencode"));
+        assert!(merged.agents.contains_key("cursor"));
+        assert!(merged.agents.contains_key("windsurf"));
+        assert!(merged.agents.contains_key("cline"));
+        assert!(merged.agents.contains_key("continue"));
+        assert!(merged.agents.contains_key("aider"));
+        assert!(merged.agents.contains_key("gemini"));
     }
 
     #[test]
-    fn normalize_config_allows_unconfigured_tool_target_dir() {
-        let mut tools = HashMap::new();
-        tools.insert(
+    fn normalize_config_allows_unconfigured_agent_target_dir() {
+        let mut agents = HashMap::new();
+        agents.insert(
             "cursor".to_string(),
-            Tool {
+            Agent {
                 name: "Cursor".to_string(),
                 target_dir: String::new(),
                 config_path: String::new(),
@@ -501,14 +501,14 @@ mod tests {
         let config = AppConfig {
             config_version: CURRENT_CONFIG_VERSION,
             storage_path: unique_temp_dir("normalize"),
-            tools,
+            agents,
             links: HashMap::new(),
-            tool_skill_settings: HashMap::new(),
+            agent_skill_settings: HashMap::new(),
         };
 
         let normalized = normalize_config(config).unwrap();
 
-        assert_eq!(normalized.tools.get("cursor").unwrap().target_dir, "");
+        assert_eq!(normalized.agents.get("cursor").unwrap().target_dir, "");
     }
 
     #[test]
@@ -516,22 +516,22 @@ mod tests {
         let old_config = AppConfig {
             config_version: 0,
             storage_path: unique_temp_dir("migrate-old"),
-            tools: HashMap::new(),
+            agents: HashMap::new(),
             links: HashMap::new(),
-            tool_skill_settings: HashMap::new(),
+            agent_skill_settings: HashMap::new(),
         };
 
         let migrated = migrate_config(old_config);
 
-        assert!(migrated.tools.contains_key("cursor"));
+        assert!(migrated.agents.contains_key("cursor"));
         assert_eq!(migrated.config_version, CURRENT_CONFIG_VERSION);
 
         let current_config = AppConfig {
             config_version: CURRENT_CONFIG_VERSION,
             storage_path: unique_temp_dir("migrate-current"),
-            tools: HashMap::from([(
+            agents: HashMap::from([(
                 "custom".to_string(),
-                Tool {
+                Agent {
                     name: "Custom".to_string(),
                     target_dir: String::new(),
                     config_path: String::new(),
@@ -542,12 +542,12 @@ mod tests {
                 },
             )]),
             links: HashMap::new(),
-            tool_skill_settings: HashMap::new(),
+            agent_skill_settings: HashMap::new(),
         };
 
         let migrated_current = migrate_config(current_config);
 
-        assert!(migrated_current.tools.contains_key("custom"));
-        assert!(!migrated_current.tools.contains_key("cursor"));
+        assert!(migrated_current.agents.contains_key("custom"));
+        assert!(!migrated_current.agents.contains_key("cursor"));
     }
 }

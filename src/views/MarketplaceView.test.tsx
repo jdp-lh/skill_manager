@@ -10,7 +10,7 @@ vi.mock("../lib/api", () => ({
       {
         id: "volcengine/documentation/volcengine-documentation",
         name: "volcengine-documentation",
-        description: "火山引擎官方文档查询工具，支持文档检索和全文获取。",
+        description: "火山引擎官方文档查询agent，支持文档检索和全文获取。",
         author: "volcengine",
         version: "1.0.0",
         tags: ["document_processing"],
@@ -69,7 +69,7 @@ vi.mock("../lib/api", () => ({
       {
         id: "volcengine/documentation/volcengine-documentation",
         name: "volcengine-documentation",
-        description: "火山引擎官方文档查询工具，支持文档检索和全文获取。",
+        description: "火山引擎官方文档查询agent，支持文档检索和全文获取。",
         author: "volcengine",
         version: "1.0.0",
         tags: ["document_processing"],

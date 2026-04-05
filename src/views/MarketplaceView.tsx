@@ -89,7 +89,7 @@ export function MarketplaceView({
     setDownloading(listing.id);
     try {
       const isUpdate = isSkillInstalled(listing);
-      await downloadMarketplaceSkill(listing.id, storagePath);
+      await downloadMarketplaceSkill(listing.id, storagePath, listing.description);
       onDownloadSuccess(isUpdate ? `${listing.name} 更新成功` : `${listing.name} 安装成功`);
       onRefresh();
     } catch (err) {
