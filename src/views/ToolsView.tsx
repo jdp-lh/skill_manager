@@ -213,76 +213,56 @@ export function ToolsView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{labels.tools}</h1>
-            <p className="mt-1 text-sm text-gray-500">{labels.toolsHint}</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={async () => {
-                setRefreshing(true);
-                try {
-                  await onRefresh();
-                } finally {
-                  setRefreshing(false);
-                }
-              }}
-              disabled={refreshing}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {labels.refresh}
-            </button>
-            <button
-              onClick={() =>
-                setToolModal({
-                  id: "",
-                  tool: {
-                    name: "",
-                    description: "",
-                    icon: "Bot",
-                    tags: [],
-                    config_path: "",
-                    target_dir: "",
-                    enabled: true,
-                  },
-                })
-              }
-              disabled={isViewer}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              {labels.addTool}
-            </button>
-          </div>
+      <div className="flex flex-col gap-4 rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">{labels.tools}</h1>
+          <p className="mt-1 text-[13px] text-gray-500">{labels.toolsHint}</p>
         </div>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            onClick={async () => {
+              setRefreshing(true);
+              try {
+                await onRefresh();
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
+            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {labels.refresh}
+          </button>
+          <button
+            onClick={() =>
+              setToolModal({
+                id: "",
+                tool: {
+                  name: "",
+                  description: "",
+                  icon: "Bot",
+                  tags: [],
+                  config_path: "",
+                  target_dir: "",
+                  enabled: true,
+                },
+              })
+            }
+            disabled={isViewer}
+            className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            {labels.addTool}
+          </button>
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={labels.searchTools}
-              className="w-full rounded-xl border border-gray-300 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 py-1.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {tagOptions.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setActiveTag(tag)}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                  activeTag === tag
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {tag === "all" ? labels.allTags : tag}
-              </button>
-            ))}
           </div>
         </div>
       </div>
