@@ -38,7 +38,14 @@ struct FindSkillApiResponse {
     #[serde(rename = "Skills")]
     skills: Vec<FindSkillSkill>,
     #[serde(rename = "Total")]
-    total: i64,
+
+}
+
+#[derive(Debug, Deserialize)]
+struct FindSkillDetailApiResponse {
+    #[serde(rename = "Skill")]
+    skill: FindSkillSkill,
+
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +60,8 @@ struct FindSkillSkill {
     source_type: String,
     #[serde(rename = "SourceRepo")]
     source_repo: String,
+    #[serde(rename = "SkillMarkdown")]
+    skill_markdown: Option<String>,
     #[serde(rename = "Keywords")]
     keywords: Option<String>,
     #[serde(rename = "DownloadCount")]
@@ -228,7 +237,7 @@ pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, St
 #[tauri::command]
 pub async fn get_marketplace_listing_detail(id: String) -> Result<MarketplaceListing, String> {
     // Fetch listing by searching for the specific slug
-    let url = format!("{}/skills?pageNumber=1&pageSize=100", API_BASE_URL);
+    let url = format!("{}/skills/{}", API_BASE_URL, id);
 
     let client = reqwest::Client::new();
     let response = client
@@ -236,20 +245,25 @@ pub async fn get_marketplace_listing_detail(id: String) -> Result<MarketplaceLis
         .timeout(std::time::Duration::from_secs(30))
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch skills: {}", e))?;
+        .map_err(|e| format!("Failed to fetch skill details: {}", e))?;
 
-    let api_response: FindSkillApiResponse = response
+    let api_response: FindSkillDetailApiResponse = response
         .json()
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    api_response
-        .skills
-        .iter()
-        .find(|s| s.slug == id)
-        .map(convert_findskill_to_listing)
-        .ok_or_else(|| format!("Listing {} not found", id))
+    let mut listing = convert_findskill_to_listing(&api_response.skill);
+    
+    // Use SkillMarkdown as content if it is available, otherwise fall back to generation
+    if let Some(markdown) = &api_response.skill.skill_markdown {
+        if !markdown.is_empty() {
+            listing.content = Some(markdown.clone());
+        }
+    }
+    
+    Ok(listing)
 }
+
 
 #[tauri::command]
 pub async fn download_marketplace_skill(
@@ -260,7 +274,7 @@ pub async fn download_marketplace_skill(
     let listing = get_marketplace_listing_detail(id.clone()).await?;
 
     // Generate skill content
-    let skill_content = generate_skill_content(&listing);
+    let skill_content = listing.content.clone().unwrap_or_else(|| generate_skill_content(&listing));
 
     // Resolve storage path
     let mut dest_path = PathBuf::from(&storage_path);
