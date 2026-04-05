@@ -4,29 +4,29 @@ import type {
   MarketplaceListing,
   MarketplaceListingsResponse,
   SkillEntry,
-  ToolConfig,
-  ToolSkillSettings,
+  AgentConfig,
+  AgentSkillSettings,
 } from "./api";
 
 const CONFIG_KEY = "skills-manager-mock-config";
 const FILES_KEY = "skills-manager-mock-files";
 const CURRENT_CONFIG_VERSION = 1;
 
-const createTool = (tool: Partial<ToolConfig> & Pick<ToolConfig, "name">): ToolConfig => ({
-  name: tool.name,
-  target_dir: tool.target_dir || "",
-  config_path: tool.config_path || "",
-  description: tool.description || "",
-  icon: tool.icon || "Bot",
-  tags: tool.tags || [],
-  enabled: tool.enabled ?? true,
+const createAgent = (agent: Partial<AgentConfig> & Pick<AgentConfig, "name">): AgentConfig => ({
+  name: agent.name,
+  target_dir: agent.target_dir || "",
+  config_path: agent.config_path || "",
+  description: agent.description || "",
+  icon: agent.icon || "Bot",
+  tags: agent.tags || [],
+  enabled: agent.enabled ?? true,
 });
 
 const defaultConfig = (): AppConfig => ({
   config_version: CURRENT_CONFIG_VERSION,
   storage_path: "~/.skills-manager/skills",
-  tools: {
-    claude: createTool({
+  agents: {
+    claude: createAgent({
       name: "Claude Code",
       target_dir: "/mock/claude/skills",
       config_path: "/mock/claude",
@@ -34,14 +34,14 @@ const defaultConfig = (): AppConfig => ({
       icon: "Bot",
       tags: ["assistant", "cli"],
     }),
-    cursor: createTool({
+    cursor: createAgent({
       name: "Cursor",
       config_path: "/mock/cursor",
-      description: "Cursor 编辑器的工具能力。",
+      description: "Cursor 编辑器的agent能力。",
       icon: "PanelLeft",
       tags: ["editor", "agent"],
     }),
-    gemini: createTool({
+    gemini: createAgent({
       name: "Gemini CLI",
       config_path: "/mock/gemini",
       target_dir: "/mock/gemini/skills",
@@ -54,7 +54,7 @@ const defaultConfig = (): AppConfig => ({
     "analyze_pr.md": ["claude", "cursor"],
     "summarize_logs.md": ["gemini"],
   },
-  tool_skill_settings: {
+  agent_skill_settings: {
     claude: {
       "analyze_pr.md": {
         enabled: true,
@@ -106,23 +106,23 @@ const saveFiles = (files: Record<string, string>) => {
 };
 
 const sanitizeConfig = (config: AppConfig): AppConfig => {
-  const toolIds = new Set(Object.keys(config.tools));
+  const agentIds = new Set(Object.keys(config.agents));
   const links = Object.fromEntries(
     Object.entries(config.links)
       .map(([skillName, ids]) => [
         skillName,
-        ids.filter((toolId, index) => toolIds.has(toolId) && ids.indexOf(toolId) === index),
+        ids.filter((agentId, index) => agentIds.has(agentId) && ids.indexOf(agentId) === index),
       ])
       .filter(([, ids]) => ids.length > 0)
   );
 
-  const tool_skill_settings = Object.fromEntries(
-    Object.entries(config.tool_skill_settings || {})
-      .filter(([toolId]) => toolIds.has(toolId))
-      .map(([toolId, settings]) => [
-        toolId,
+  const agent_skill_settings = Object.fromEntries(
+    Object.entries(config.agent_skill_settings || {})
+      .filter(([agentId]) => agentIds.has(agentId))
+      .map(([agentId, settings]) => [
+        agentId,
         Object.fromEntries(
-          Object.entries(settings).filter(([skillName]) => (links[skillName] || []).includes(toolId))
+          Object.entries(settings).filter(([skillName]) => (links[skillName] || []).includes(agentId))
         ),
       ])
       .filter(([, settings]) => Object.keys(settings).length > 0)
@@ -132,7 +132,7 @@ const sanitizeConfig = (config: AppConfig): AppConfig => {
     ...config,
     config_version: CURRENT_CONFIG_VERSION,
     links,
-    tool_skill_settings,
+    agent_skill_settings,
   };
 };
 
@@ -204,39 +204,39 @@ export const deleteSkill = async (path: string) => {
 
   const config = getConfigInternal();
   delete config.links[skillName];
-  for (const toolId of Object.keys(config.tool_skill_settings)) {
-    delete config.tool_skill_settings[toolId][skillName];
-    if (Object.keys(config.tool_skill_settings[toolId]).length === 0) {
-      delete config.tool_skill_settings[toolId];
+  for (const agentId of Object.keys(config.agent_skill_settings)) {
+    delete config.agent_skill_settings[agentId][skillName];
+    if (Object.keys(config.agent_skill_settings[agentId]).length === 0) {
+      delete config.agent_skill_settings[agentId];
     }
   }
   saveConfigInternal(config);
 };
 
-export const toggleLink = async (skillName: string, toolId: string, enable: boolean) => {
+export const toggleLink = async (skillName: string, agentId: string, enable: boolean) => {
   const config = getConfigInternal();
-  const toolIds = config.links[skillName] || [];
+  const agentIds = config.links[skillName] || [];
   if (enable) {
-    if (!toolIds.includes(toolId)) {
-      toolIds.push(toolId);
+    if (!agentIds.includes(agentId)) {
+      agentIds.push(agentId);
     }
-    config.links[skillName] = toolIds;
-    config.tool_skill_settings[toolId] = config.tool_skill_settings[toolId] || {};
-    config.tool_skill_settings[toolId][skillName] =
-      config.tool_skill_settings[toolId][skillName] || ({
+    config.links[skillName] = agentIds;
+    config.agent_skill_settings[agentId] = config.agent_skill_settings[agentId] || {};
+    config.agent_skill_settings[agentId][skillName] =
+      config.agent_skill_settings[agentId][skillName] || ({
         enabled: true,
         priority: 0,
         parameters: {},
-      } satisfies ToolSkillSettings);
+      } satisfies AgentSkillSettings);
   } else {
-    config.links[skillName] = toolIds.filter((id) => id !== toolId);
+    config.links[skillName] = agentIds.filter((id) => id !== agentId);
     if (config.links[skillName].length === 0) {
       delete config.links[skillName];
     }
-    if (config.tool_skill_settings[toolId]) {
-      delete config.tool_skill_settings[toolId][skillName];
-      if (Object.keys(config.tool_skill_settings[toolId]).length === 0) {
-        delete config.tool_skill_settings[toolId];
+    if (config.agent_skill_settings[agentId]) {
+      delete config.agent_skill_settings[agentId][skillName];
+      if (Object.keys(config.agent_skill_settings[agentId]).length === 0) {
+        delete config.agent_skill_settings[agentId];
       }
     }
   }
@@ -252,7 +252,7 @@ const mockListings: MarketplaceListing[] = [
   {
     id: "volcengine/documentation/volcengine-documentation",
     name: "volcengine-documentation",
-    description: "火山引擎官方文档查询工具，支持文档检索和全文获取。涵盖火山引擎全部产品、开发者工具、服务支持、最佳实践。",
+    description: "火山引擎官方文档查询agent，支持文档检索和全文获取。涵盖火山引擎全部产品、开发者agent、服务支持、最佳实践。",
     author: "volcengine",
     version: "1.0.0",
     tags: ["document_processing"],

@@ -288,6 +288,7 @@ pub async fn get_marketplace_listing_detail(id: String) -> Result<MarketplaceLis
 pub async fn download_marketplace_skill(
     id: String,
     storage_path: String,
+    description: Option<String>,
 ) -> Result<String, String> {
     // Resolve storage path
     let mut dest_path = PathBuf::from(&storage_path);
@@ -345,6 +346,13 @@ pub async fn download_marketplace_skill(
     if !output.status.success() {
         let err_msg = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Unzip failed: {}", err_msg));
+    }
+
+    // Update the description if provided
+    if let Some(desc) = description {
+        if !desc.is_empty() {
+            let _ = crate::skills::update_skill_description(&target_dir, &desc);
+        }
     }
 
     Ok("Success".to_string())

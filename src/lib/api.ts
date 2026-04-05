@@ -1,13 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import * as mockApi from "./mockApi";
 
-export interface ToolSkillSettings {
+export interface AgentSkillSettings {
   enabled: boolean;
   priority: number;
   parameters: Record<string, string>;
 }
 
-export interface ToolConfig {
+export interface AgentConfig {
   name: string;
   target_dir: string;
   config_path: string;
@@ -20,9 +20,9 @@ export interface ToolConfig {
 export interface AppConfig {
   config_version: number;
   storage_path: string;
-  tools: Record<string, ToolConfig>;
+  agents: Record<string, AgentConfig>;
   links: Record<string, string[]>;
-  tool_skill_settings: Record<string, Record<string, ToolSkillSettings>>;
+  agent_skill_settings: Record<string, Record<string, AgentSkillSettings>>;
 }
 
 export interface SkillEntry {
@@ -70,8 +70,8 @@ const api = isTauriEnvironment
       writeSkillFile: (path: string, content: string) =>
         invoke<void>("write_skill_file", { path, content }),
       deleteSkill: (path: string) => invoke<void>("delete_skill", { path }),
-      toggleLink: (skillName: string, toolId: string, enable: boolean) =>
-        invoke<void>("toggle_link", { skillName, toolId, enable }),
+      toggleLink: (skillName: string, agentId: string, enable: boolean) =>
+        invoke<void>("toggle_link", { skillName, agentId, enable }),
       syncAll: () => invoke<void>("sync_all"),
       // Marketplace APIs
       getMarketplaceListings: (page?: number, pageSize?: number, category?: string, search?: string) =>
@@ -79,8 +79,8 @@ const api = isTauriEnvironment
       getFeaturedListings: () => invoke<MarketplaceListing[]>("get_featured_marketplace_listings"),
       getMarketplaceCategories: () => invoke<MarketplaceCategory[]>("get_marketplace_categories"),
       getMarketplaceListingDetail: (id: string) => invoke<MarketplaceListing>("get_marketplace_listing_detail", { id }),
-      downloadMarketplaceSkill: (id: string, storagePath: string) =>
-        invoke<string>("download_marketplace_skill", { id, storagePath }),
+      downloadMarketplaceSkill: (id: string, storagePath: string, description?: string) =>
+        invoke<string>("download_marketplace_skill", { id, storagePath, description }),
     }
   : mockApi;
 
@@ -91,8 +91,8 @@ export const readSkillFile = (path: string) => api.readSkillFile(path);
 export const writeSkillFile = (path: string, content: string) =>
   api.writeSkillFile(path, content);
 export const deleteSkill = (path: string) => api.deleteSkill(path);
-export const toggleLink = (skillName: string, toolId: string, enable: boolean) =>
-  api.toggleLink(skillName, toolId, enable);
+export const toggleLink = (skillName: string, agentId: string, enable: boolean) =>
+  api.toggleLink(skillName, agentId, enable);
 export const syncAll = () => api.syncAll();
 
 // Marketplace exports
@@ -101,5 +101,5 @@ export const getMarketplaceListings = (page?: number, pageSize?: number, categor
 export const getFeaturedListings = () => api.getFeaturedListings();
 export const getMarketplaceCategories = () => api.getMarketplaceCategories();
 export const getMarketplaceListingDetail = (id: string) => api.getMarketplaceListingDetail(id);
-export const downloadMarketplaceSkill = (id: string, storagePath: string) =>
-  api.downloadMarketplaceSkill(id, storagePath);
+export const downloadMarketplaceSkill = (id: string, storagePath: string, description?: string) =>
+  api.downloadMarketplaceSkill(id, storagePath, description);

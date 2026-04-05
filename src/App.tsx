@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
 import { SkillsView } from "./views/SkillsView";
-import { ToolsView } from "./views/ToolsView";
+import { AgentsView } from "./views/AgentsView";
 import { MarketplaceView } from "./views/MarketplaceView";
 import { SkillEntry, readSkillFile } from "./lib/api";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
@@ -21,7 +21,7 @@ const i18n = {
     appTitle: "Skills Manager",
     sidebarHint: "统一管理你的 agents 与 skills",
     skills: "Skills",
-    tools: "Agents",
+    agents: "Agents",
     marketplace: "技能市场",
     refresh: "刷新",
     refreshSuccess: "刷新成功",
@@ -33,7 +33,7 @@ const i18n = {
     viewer: "访客",
     newSkill: "新增 Skill",
     searchSkills: "搜索 skill 名称",
-    searchTools: "搜索 agent 名称",
+    searchAgents: "搜索 agent 名称",
     save: "保存",
     saving: "保存中...",
     cancel: "取消",
@@ -43,8 +43,8 @@ const i18n = {
     skillNamePlaceholder: "例如：review_pr.md",
     editSkill: "编辑 Skill",
     noSkillsFound: "当前没有匹配的 skill。",
-    toolsHint: "点击左侧 Agents 菜单，在右侧查看和管理所有 agent 卡片。",
-    addTool: "新增 Agent",
+    agentsHint: "查看和管理所有的 agents 及其对应的 skills 和配置信息。",
+    addAgent: "新增 Agent",
     allTags: "全部标签",
     disabled: "已停用",
     configureSkill: "配置 Skill",
@@ -52,23 +52,23 @@ const i18n = {
     skillsPathRequired: "Skills Path 不能为空",
     skillsPathHint: "必填，默认：~/.<agent-id>/skills",
     notConfigured: "未配置",
-    noToolsFound: "没有匹配的 agent。",
-    toolId: "Agent ID",
-    toolName: "Agent 名称",
-    toolNameRequired: "Agent 名称不能为空",
+    noAgentsFound: "没有匹配的 agent。",
+    agentId: "Agent ID",
+    agentName: "Agent 名称",
+    agentNameRequired: "Agent 名称不能为空",
     description: "简要描述",
     icon: "图标",
     iconPlaceholder: "选择上方图标或输入 Lucide 图标名",
     tags: "标签",
     tagsPlaceholder: "用逗号分隔，例如：cli, agent",
     enabled: "启用此 Agent",
-    invalidToolId: "Agent ID 只能包含字母、数字、下划线和连字符",
-    duplicateToolId: "Agent ID 已存在",
-    createTool: "新增 Agent",
-    editTool: "编辑 Agent",
-    toolSaved: "Agent 已保存并同步",
-    toolDeleted: "Agent 已删除",
-    confirmDeleteTool: "确定删除 {tool} 吗？",
+    invalidAgentId: "Agent ID 只能包含字母、数字、下划线和连字符",
+    duplicateAgentId: "Agent ID 已存在",
+    createAgent: "新增 Agent",
+    editAgent: "编辑 Agent",
+    agentSaved: "Agent 已保存并同步",
+    agentDeleted: "Agent 已删除",
+    confirmDeleteAgent: "确定删除 {agent} 吗？",
     skillAssociations: "个 Skill 关联",
     skillConfigTitle: "配置 {agent} 的 Skill",
     skillConfigHint: "管理当前 agent 的 skill 关联、参数与优先级。",
@@ -116,7 +116,7 @@ const i18n = {
     appTitle: "Skills Manager",
     sidebarHint: "Manage your agents and skills in one place",
     skills: "Skills",
-    tools: "Agents",
+    agents: "Agents",
     marketplace: "Marketplace",
     refresh: "Refresh",
     refreshSuccess: "Refreshed",
@@ -128,7 +128,7 @@ const i18n = {
     viewer: "Viewer",
     newSkill: "New Skill",
     searchSkills: "Search skills",
-    searchTools: "Search agents by name",
+    searchAgents: "Search agents by name",
     save: "Save",
     saving: "Saving...",
     cancel: "Cancel",
@@ -138,8 +138,8 @@ const i18n = {
     skillNamePlaceholder: "For example: review_pr.md",
     editSkill: "Edit Skill",
     noSkillsFound: "No matching skills found.",
-    toolsHint: "Click the Agents item in the left navigation to manage all agent cards here.",
-    addTool: "Add Agent",
+    agentsHint: "View and manage all agents, their skills, and configuration info.",
+    addAgent: "Add Agent",
     allTags: "All Tags",
     disabled: "Disabled",
     configureSkill: "Configure Skill",
@@ -147,23 +147,23 @@ const i18n = {
     skillsPathRequired: "Skills Path is required",
     skillsPathHint: "Required. Default: ~/.<agent-id>/skills",
     notConfigured: "Not configured",
-    noToolsFound: "No matching agents found.",
-    toolId: "Agent ID",
-    toolName: "Agent Name",
-    toolNameRequired: "Agent name is required",
+    noAgentsFound: "No matching agents found.",
+    agentId: "Agent ID",
+    agentName: "Agent Name",
+    agentNameRequired: "Agent name is required",
     description: "Description",
     icon: "Icon",
     iconPlaceholder: "Select above or enter Lucide icon name",
     tags: "Tags",
     tagsPlaceholder: "Comma separated, for example: cli, agent",
     enabled: "Enable this agent",
-    invalidToolId: "Agent ID may only contain letters, numbers, underscores and hyphens",
-    duplicateToolId: "Agent ID already exists",
-    createTool: "Create Agent",
-    editTool: "Edit Agent",
-    toolSaved: "Agent saved and synced",
-    toolDeleted: "Agent deleted",
-    confirmDeleteTool: "Delete {tool}?",
+    invalidAgentId: "Agent ID may only contain letters, numbers, underscores and hyphens",
+    duplicateAgentId: "Agent ID already exists",
+    createAgent: "Create Agent",
+    editAgent: "Edit Agent",
+    agentSaved: "Agent saved and synced",
+    agentDeleted: "Agent deleted",
+    confirmDeleteAgent: "Delete {agent}?",
     skillAssociations: "skill associations",
     skillConfigTitle: "Configure skills for {agent}",
     skillConfigHint: "Manage linked skills, parameters, and priorities for this agent.",
@@ -233,7 +233,7 @@ export default function App() {
 
   const overview = useMemo(
     () => ({
-      toolCount: config ? Object.keys(config.tools).length : 0,
+      agentCount: config ? Object.keys(config.agents).length : 0,
       skillCount: skills.length,
       linkCount: config ? Object.values(config.links).reduce((sum, items) => sum + items.length, 0) : 0,
     }),
@@ -355,11 +355,12 @@ export default function App() {
                   }
                 }}
                 onSaveSkill={handleSaveSkill}
+                onNavigateToMarketplace={() => dispatch(setActiveView("marketplace"))}
               />
             )}
 
-            {activeView === "tools" && (
-              <ToolsView
+            {activeView === "agents" && (
+              <AgentsView
                 labels={labels}
                 config={config}
                 skills={skills}

@@ -1,23 +1,23 @@
 import { expect, test } from "@playwright/test";
 
-test("完整的 Tools 工作流", async ({ page }) => {
+test("完整的 Agents 工作流", async ({ page }) => {
   await page.goto("/");
 
   await page.getByRole("button", { name: "Agents" }).click();
   await expect(page.getByRole("heading", { name: "Cursor" })).toBeVisible();
 
   await page.getByRole("button", { name: "新增 Agent" }).click();
-  await page.getByLabel("Agent ID").fill("playwright_tool");
-  await page.getByLabel("Agent 名称").fill("Playwright Tool");
-  await page.getByLabel("简要描述").fill("用于端到端测试的工具");
+  await page.getByLabel("Agent ID").fill("playwright_agent");
+  await page.getByLabel("Agent 名称").fill("Playwright Agent");
+  await page.getByLabel("简要描述").fill("用于端到端测试的agent");
   await page.locator('button:has-text("Bot")').first().click();
   await page.locator('#icon-dropdown').getByRole('button', { name: 'Cpu' }).click();
   await page.getByRole("button", { name: "保存" }).click();
 
-  await expect(page.getByText("Playwright Tool")).toBeVisible();
+  await expect(page.getByText("Playwright Agent")).toBeVisible();
 
   await page.getByPlaceholder("搜索 agent 名称").fill("Playwright");
-  await expect(page.getByText("Playwright Tool")).toBeVisible();
+  await expect(page.getByText("Playwright Agent")).toBeVisible();
 
   await page.getByRole("button", { name: "配置 Skill" }).last().click();
   // Click on the skill card to transfer it
@@ -31,7 +31,7 @@ test("完整的 Tools 工作流", async ({ page }) => {
   await expect(page.getByText("Skill 配置已保存")).toBeVisible();
 });
 
-test("viewer 权限下不能修改 tool", async ({ page }) => {
+test("viewer 权限下不能修改 agent", async ({ page }) => {
   await page.goto("/?role=viewer");
   await page.getByRole("button", { name: "Agents" }).click();
 
