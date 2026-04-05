@@ -11,7 +11,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-const iconMap = {
+export const iconMap = {
   Bot,
   Boxes,
   Code2,
@@ -23,6 +23,8 @@ const iconMap = {
   Workflow,
   Wrench,
 };
+
+export const AVAILABLE_ICONS = Object.keys(iconMap);
 
 type ToolIconProps = {
   icon: string;

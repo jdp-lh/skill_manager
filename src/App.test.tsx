@@ -51,7 +51,7 @@ describe("Skills Manager tools menu", () => {
     expect(await screen.findByText("Cursor")).toBeInTheDocument();
     expect(screen.getByText("Gemini CLI")).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText("搜索 tool 名称或标签"), "gemini");
+    await user.type(screen.getByPlaceholderText("搜索 agent 名称"), "gemini");
 
     expect(screen.queryByText("Cursor")).not.toBeInTheDocument();
     expect(screen.getByText("Gemini CLI")).toBeInTheDocument();
@@ -62,20 +62,20 @@ describe("Skills Manager tools menu", () => {
     renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Agents" }));
-    await user.click(screen.getByRole("button", { name: "新增 Tool" }));
+    await user.click(screen.getByRole("button", { name: "新增 Agent" }));
 
-    fireEvent.change(screen.getByLabelText("Tool ID"), { target: { value: "custom_tool" } });
-    fireEvent.change(screen.getByLabelText("Tool 名称"), { target: { value: "Custom Tool" } });
+    fireEvent.change(screen.getByLabelText("Agent ID"), { target: { value: "custom_tool" } });
+    fireEvent.change(screen.getByLabelText("Agent 名称"), { target: { value: "Custom Tool" } });
     fireEvent.change(screen.getByLabelText("简要描述"), { target: { value: "自定义描述" } });
-    fireEvent.change(screen.getByLabelText("图标标识"), { target: { value: "Cpu" } });
-    fireEvent.change(screen.getByLabelText("标签"), { target: { value: "custom, cli" } });
+    await user.click(screen.getByText("Bot").closest("button")!);
+    await user.click(screen.getByTitle("Cpu"));
     await user.click(screen.getByRole("button", { name: "保存" }));
 
     expect(await screen.findByText("Custom Tool")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "编辑 Custom Tool" }));
-    fireEvent.change(screen.getByLabelText("Tool 名称"), { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("Tool 名称"), { target: { value: "Custom Tool Updated" } });
+    fireEvent.change(screen.getByLabelText("Agent 名称"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Agent 名称"), { target: { value: "Custom Tool Updated" } });
     await user.click(screen.getByRole("button", { name: "保存" }));
 
     expect(await screen.findByText("Custom Tool Updated")).toBeInTheDocument();
@@ -95,35 +95,35 @@ describe("Skills Manager tools menu", () => {
     renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Agents" }));
-    await user.click(screen.getByRole("button", { name: "新增 Tool" }));
+    await user.click(screen.getByRole("button", { name: "新增 Agent" }));
 
     expect(screen.queryByLabelText(/Config Path/i)).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Tool ID"), { target: { value: "custom_tool" } });
+    fireEvent.change(screen.getByLabelText("Agent ID"), { target: { value: "custom_tool" } });
 
     const skillsPathInput = screen.getAllByLabelText(/Skills Path/i)[0] as HTMLInputElement;
     expect(skillsPathInput.value).toBe("~/.custom_tool/skills");
 
     fireEvent.change(skillsPathInput, { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("Tool 名称"), { target: { value: "Custom Tool" } });
+    fireEvent.change(screen.getByLabelText("Agent 名称"), { target: { value: "Custom Tool" } });
     await user.click(screen.getByRole("button", { name: "保存" }));
 
     expect(screen.getByText("Skills Path 不能为空")).toBeInTheDocument();
   });
 
-  it("手动修改 Skills Path 后，再修改 Tool ID 不覆盖用户输入", async () => {
+  it("手动修改 Skills Path 后，再修改 Agent ID 不覆盖用户输入", async () => {
     const user = userEvent.setup();
     renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Agents" }));
-    await user.click(screen.getByRole("button", { name: "新增 Tool" }));
+    await user.click(screen.getByRole("button", { name: "新增 Agent" }));
 
-    fireEvent.change(screen.getByLabelText("Tool ID"), { target: { value: "claude" } });
+    fireEvent.change(screen.getByLabelText("Agent ID"), { target: { value: "claude" } });
     const skillsPathInput = screen.getAllByLabelText(/Skills Path/i)[0] as HTMLInputElement;
     expect(skillsPathInput.value).toBe("~/.claude/skills");
 
     fireEvent.change(skillsPathInput, { target: { value: "/custom/skills" } });
-    fireEvent.change(screen.getByLabelText("Tool ID"), { target: { value: "cursor" } });
+    fireEvent.change(screen.getByLabelText("Agent ID"), { target: { value: "cursor" } });
 
     expect(skillsPathInput.value).toBe("/custom/skills");
   });
