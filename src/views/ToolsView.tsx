@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Settings2, Trash2, Check, X } from "lucide-react";
 import { AppConfig, SkillEntry, SkillTestResult, ToolConfig, ToolSkillSettings } from "../lib/api";
 import { ToolFormModal, ToolFormValue } from "../components/ToolFormModal";
@@ -38,25 +38,8 @@ export function ToolsView({
   const [activeTag, setActiveTag] = useState<string>("all");
   const [toolModal, setToolModal] = useState<ToolFormValue | null>(null);
   const [skillConfigToolId, setSkillConfigToolId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ toolId: string; tool: ToolConfig } | null>(null);
   const [pathValues, setPathValues] = useState<Record<string, { config_path: string; target_dir: string }>>({});
-
-  useEffect(() => {
-    if (!toolModal) {
-      return;
-    }
-    // #region debug-point C:tool-modal-opened
-    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "C", location: "ToolsView.tsx:45", msg: "[DEBUG] tool modal state updated", data: { toolId: toolModal.id || "new" }, ts: Date.now() }) }).catch(() => {});
-    // #endregion
-  }, [toolModal]);
-
-  useEffect(() => {
-    if (!skillConfigToolId) {
-      return;
-    }
-    // #region debug-point C:skill-config-opened
-    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "C", location: "ToolsView.tsx:53", msg: "[DEBUG] skill config modal state updated", data: { toolId: skillConfigToolId }, ts: Date.now() }) }).catch(() => {});
-    // #endregion
-  }, [skillConfigToolId]);
 
   const toolEntries = useMemo(() => buildToolEntries(config.tools), [config.tools]);
 
@@ -82,11 +65,7 @@ export function ToolsView({
 
   const skillConfigTool = skillConfigToolId ? config.tools[skillConfigToolId] : null;
 
-  const handleDeleteTool = (toolId: string, tool: ToolConfig) => {
-    if (!window.confirm(labels.confirmDeleteTool.replace("{tool}", tool.name))) {
-      return;
-    }
-
+  const handleDeleteTool = (toolId: string) => {
     const nextTools = { ...config.tools };
     delete nextTools[toolId];
 
@@ -108,6 +87,14 @@ export function ToolsView({
       },
       labels.toolDeleted
     );
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+    handleDeleteTool(deleteTarget.toolId);
+    setDeleteTarget(null);
   };
 
   const handleToolSubmit = ({ id, tool }: ToolFormValue) => {
@@ -472,12 +459,7 @@ export function ToolsView({
 
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => {
-                    // #region debug-point A:tool-edit-click
-                    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "A", location: "ToolsView.tsx:358", msg: "[DEBUG] tool edit button clicked", data: { toolId, toolName: tool.name }, ts: Date.now() }) }).catch(() => {});
-                    // #endregion
-                    setToolModal({ id: toolId, tool });
-                  }}
+                  onClick={() => setToolModal({ id: toolId, tool })}
                   disabled={isViewer}
                   className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
                   aria-label={`${labels.edit} ${tool.name}`}
@@ -491,7 +473,7 @@ export function ToolsView({
                   {labels.editTool}
                 </button>
                 <button
-                  onClick={() => handleDeleteTool(toolId, tool)}
+                  onClick={() => setDeleteTarget({ toolId, tool })}
                   disabled={isViewer}
                   className="rounded-xl p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                   aria-label={`${labels.delete} ${tool.name}`}
@@ -500,12 +482,7 @@ export function ToolsView({
                 </button>
                 <div className="mx-1 h-4 w-px bg-gray-200" />
                 <button
-                  onClick={() => {
-                    // #region debug-point A:tool-config-click
-                    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "A", location: "ToolsView.tsx:376", msg: "[DEBUG] configure skill button clicked", data: { toolId, toolName: tool.name }, ts: Date.now() }) }).catch(() => {});
-                    // #endregion
-                    setSkillConfigToolId(toolId);
-                  }}
+                  onClick={() => setSkillConfigToolId(toolId)}
                   disabled={isViewer}
                   className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
                 >
@@ -547,6 +524,40 @@ export function ToolsView({
           onSave={(links, settings) => handleSaveSkillConfig(skillConfigToolId, links, settings)}
           onTest={(skillName) => onTestSkill(skillConfigToolId, skillName)}
         />
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm transition-opacity"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="px-6 py-5">
+              <h3 className="text-base font-semibold text-gray-900">{labels.delete}</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                {labels.confirmDeleteTool.replace("{tool}", deleteTarget.tool.name)}
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-50 bg-gray-50/50 px-6 py-4">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+              >
+                {labels.cancel}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+              >
+                {labels.delete}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

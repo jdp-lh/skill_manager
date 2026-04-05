@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::AppHandle;
-use tauri_plugin_shell::ShellExt;
 use crate::config::get_config;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -122,25 +120,6 @@ pub fn delete_skill(path: String) -> Result<(), String> {
     } else {
         fs::remove_file(&p).map_err(|e| e.to_string())
     }
-}
-
-#[tauri::command]
-pub fn open_skills_folder(app: AppHandle) -> Result<(), String> {
-    let config = get_config()?;
-    let mut storage_path = config.storage_path.clone();
-    
-    if storage_path.starts_with("~/") {
-        if let Some(home) = dirs::home_dir() {
-            let mut p = home;
-            p.push(&storage_path[2..]);
-            storage_path = p.to_string_lossy().to_string();
-        }
-    }
-    
-    fs::create_dir_all(&storage_path).ok();
-    
-    app.shell().open(storage_path, None).map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 #[tauri::command]

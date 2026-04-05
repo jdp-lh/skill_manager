@@ -27,12 +27,7 @@ export function Sidebar({ activeView, labels, onSelect }: SidebarProps) {
         {navItems.map(({ key, icon: Icon }) => (
           <button
             key={key}
-            onClick={() => {
-              // #region debug-point A:sidebar-nav-click
-              fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "A", location: "Sidebar.tsx:35", msg: "[DEBUG] sidebar nav clicked", data: { view: key, wasActive: activeView === key }, ts: Date.now() }) }).catch(() => {});
-              // #endregion
-              onSelect(key);
-            }}
+            onClick={() => onSelect(key)}
             className={`flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition md:w-full ${
               activeView === key
                 ? "bg-indigo-600 text-white shadow-md"
