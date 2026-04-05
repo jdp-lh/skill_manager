@@ -275,7 +275,6 @@ function MarketplaceListingDetailView({
           <ArrowLeft className="h-4 w-4" />
           {labels.back}
         </button>
-        <h1 className="text-xl font-semibold text-gray-900">{listing.name}</h1>
       </div>
 
       <div className="rounded-2xl border border-gray-100/80 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
