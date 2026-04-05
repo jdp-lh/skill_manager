@@ -5,15 +5,9 @@ import {
   ToolConfig,
   ToolSkillSettings,
 } from "../lib/api";
-import { readSkillFile } from "../lib/api";
 import {
-  FileText,
-  FolderOpen,
   Search,
-  Trash2,
   X,
-  Copy,
-  Check,
   Plus,
 } from "lucide-react";
 
@@ -29,21 +23,6 @@ type SkillConfigModalProps = {
     links: string[],
     settings: Record<string, ToolSkillSettings>,
   ) => void;
-};
-
-const extractSkillDescription = (content: string) => {
-  const lines = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter(
-      (line) =>
-        !line.startsWith("#") &&
-        !line.startsWith("---") &&
-        !line.startsWith("```"),
-    );
-
-  return lines[0] || "";
 };
 
 export function SkillConfigModal({
@@ -73,8 +52,6 @@ export function SkillConfigModal({
   const [links, setLinks] = useState<string[]>(associatedLinks);
   const [linkedSearch, setLinkedSearch] = useState("");
   const [availableSearch, setAvailableSearch] = useState("");
-  const [copiedPath, setCopiedPath] = useState("");
-  const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLinks(associatedLinks);
@@ -103,40 +80,7 @@ export function SkillConfigModal({
     [linkedSearch, links, skills],
   );
 
-  useEffect(() => {
-    let active = true;
-    const linkedEntries = skills.filter((skill) => links.includes(skill.name));
-    const missingEntries = linkedEntries.filter(
-      (skill) => descriptions[skill.name] === undefined,
-    );
 
-    if (missingEntries.length === 0) {
-      return;
-    }
-
-    void Promise.all(
-      missingEntries.map(async (skill) => {
-        try {
-          const content = await readSkillFile(skill.path);
-          return [skill.name, extractSkillDescription(content)] as const;
-        } catch {
-          return [skill.name, ""] as const;
-        }
-      }),
-    ).then((entries) => {
-      if (!active) {
-        return;
-      }
-      setDescriptions((current) => ({
-        ...current,
-        ...Object.fromEntries(entries),
-      }));
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [descriptions, links, skills]);
 
   const handleAddSkill = (skillName: string) => {
     setLinks((current) =>
@@ -190,16 +134,6 @@ export function SkillConfigModal({
     setLinks([]);
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedPath(text);
-      setTimeout(() => setCopiedPath(""), 2000);
-    } catch (err) {
-      // fallback
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm transition-opacity"
@@ -214,11 +148,8 @@ export function SkillConfigModal({
         <div className="flex items-start justify-between border-b border-gray-200 bg-white px-6 py-5">
           <div>
             <h3 className="text-[20px] font-semibold tracking-[-0.02em] text-gray-950">
-              {labels.skillConfigTitle.replace("{tool}", tool.name)}
+              {labels.skillConfigTitle.replace("{agent}", tool.name)}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              为当前 Tool 选择要关联的 Skills。
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -237,7 +168,7 @@ export function SkillConfigModal({
                     {labels.availableSkills}
                   </h4>
                   <p className="mt-1 text-xs text-gray-500">
-                    从本地 skill 列表中选择并关联到当前 Tool。
+                    从本地 skill 列表中选择并关联到当前 Agent。
                   </p>
                 </div>
                 <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
@@ -275,22 +206,22 @@ export function SkillConfigModal({
                     <button
                       key={skill.path}
                       onClick={() => handleAddSkill(skill.name)}
-                      className="group flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm transition hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm"
+                      className="group flex w-full flex-col gap-1.5 items-start justify-between rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <FileText className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                        <span className="truncate font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
+                      <div className="flex w-full items-center justify-between">
+                        <span className="truncate font-semibold text-sm text-gray-800 group-hover:text-blue-700 transition-colors">
                           {skill.name.endsWith('.md') ? skill.name.slice(0, -3) : skill.name}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-gray-500 uppercase transition-colors group-hover:bg-blue-100 group-hover:text-blue-600">
-                          {skill.is_dir ? labels.directory : labels.file}
-                        </span>
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-gray-400 opacity-0 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:opacity-100">
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400 opacity-0 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:opacity-100 ml-2">
                           <Plus className="h-3 w-3" />
                         </div>
                       </div>
+                      
+                      {skill.description && (
+                        <p className="line-clamp-2 text-xs text-gray-500 w-full" title={skill.description}>
+                          {skill.description}
+                        </p>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -305,7 +236,7 @@ export function SkillConfigModal({
                       {labels.linkedSkills}
                     </h4>
                     <p className="mt-1 text-xs text-gray-500">
-                      当前 Tool 已关联的 skills，支持快速移除。
+                      当前 Agent 已关联的 skills，支持快速移除。
                     </p>
                   </div>
                   <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
@@ -338,69 +269,32 @@ export function SkillConfigModal({
               const skillName = skill.name;
               return (
                 <div
-                  key={skillName}
-                  className="group relative flex min-h-[140px] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
-                >
+                    key={skillName}
+                    className="group relative flex min-h-[70px] flex-col rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm"
+                  >
                   <button
                     onClick={() => {
                       setLinks((current) =>
                         current.filter((item) => item !== skillName),
                       );
                     }}
-                    className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 opacity-40 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                    className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-500 opacity-0 transition-all hover:bg-red-500 hover:text-white group-hover:opacity-100"
                     title={labels.delete}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <X className="h-3 w-3" />
                   </button>
 
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="pr-8 flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-100/50 bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100/50">
-                        {skill.is_dir ? (
-                          <FolderOpen className="h-5 w-5" />
-                        ) : (
-                          <FileText className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex flex-col min-w-0 justify-center">
-                        <div className="flex items-center gap-2">
-                          <h4 
-                            className="truncate text-sm font-semibold text-gray-900"
-                            title={skillName.endsWith('.md') ? skillName.slice(0, -3) : skillName}
-                          >
-                            {skillName.endsWith('.md') ? skillName.slice(0, -3) : skillName}
-                          </h4>
-                          <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase text-gray-500">
-                            {skill.is_dir ? labels.directory : labels.file}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p 
-                      className="mt-3 line-clamp-2 flex-1 text-xs leading-relaxed text-gray-500/90"
-                      title={descriptions[skillName] || labels.skillDescriptionFallback}
-                    >
-                      {descriptions[skillName] || labels.skillDescriptionFallback}
-                    </p>
-
-                    <div className="mt-4 pt-3 flex items-center gap-2 border-t border-gray-100/80 text-gray-500">
-                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-gray-400" title={skill.path}>
-                          {skill.path}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(skill.path)}
-                        className="shrink-0 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors rounded-md"
-                        title="Copy path"
-                      >
-                        {copiedPath === skill.path ? (
-                          <Check className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
-                    </div>
+                  <div className="flex w-full items-center justify-between pr-6">
+                    <span className="truncate font-semibold text-sm text-gray-800 group-hover:text-blue-700 transition-colors">
+                      {skillName.endsWith('.md') ? skillName.slice(0, -3) : skillName}
+                    </span>
                   </div>
+
+                  {skill.description && (
+                    <p className="line-clamp-2 mt-1.5 text-xs text-gray-500 w-full" title={skill.description}>
+                      {skill.description}
+                    </p>
+                  )}
                 </div>
               );
             })}
