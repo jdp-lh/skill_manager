@@ -81,7 +81,6 @@ const api = isTauriEnvironment
       toggleLink: (skillName: string, toolId: string, enable: boolean) =>
         invoke<void>("toggle_link", { skillName, toolId, enable }),
       syncAll: () => invoke<void>("sync_all"),
-      openSkillsFolder: () => invoke<void>("open_skills_folder"),
       testToolSkill: (toolId: string, skillName: string) =>
         invoke<SkillTestResult>("test_tool_skill", { toolId, skillName }),
       // Marketplace APIs
@@ -105,7 +104,6 @@ export const deleteSkill = (path: string) => api.deleteSkill(path);
 export const toggleLink = (skillName: string, toolId: string, enable: boolean) =>
   api.toggleLink(skillName, toolId, enable);
 export const syncAll = () => api.syncAll();
-export const openSkillsFolder = () => api.openSkillsFolder();
 export const testToolSkill = (toolId: string, skillName: string) =>
   api.testToolSkill(toolId, skillName);
 

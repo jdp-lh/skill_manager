@@ -12,6 +12,28 @@ const renderApp = () =>
   );
 
 describe("Skills Manager tools menu", () => {
+  it("Skills 页面不再展示打开目录按钮，并默认展示 skills 目录", async () => {
+    renderApp();
+
+    expect((await screen.findAllByText("~/.skills-manager/skills")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "打开目录" })).not.toBeInTheDocument();
+  });
+
+  it("切换视图和编辑技能时不触发遗留 debug 网络上报", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 200 })
+    );
+
+    renderApp();
+
+    await user.click(await screen.findByRole("button", { name: "Tools" }));
+    await user.click(await screen.findByRole("button", { name: "Skills" }));
+    await user.click(screen.getAllByRole("button", { name: "编辑 Skill" })[0]);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("点击 Tools 后展示 tool 卡片，并支持搜索", async () => {
     const user = userEvent.setup();
     renderApp();
@@ -29,7 +51,6 @@ describe("Skills Manager tools menu", () => {
 
   it("支持新增、编辑和删除 tool", async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Tools" }));
@@ -52,6 +73,9 @@ describe("Skills Manager tools menu", () => {
     expect(await screen.findByText("Custom Tool Updated")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "删除 Custom Tool Updated" }));
+    expect(screen.getByText("确定删除 Custom Tool Updated 吗？")).toBeInTheDocument();
+    const deleteButtons = screen.getAllByRole("button", { name: "删除" });
+    await user.click(deleteButtons[deleteButtons.length - 1]);
 
     await waitFor(() =>
       expect(screen.queryByText("Custom Tool Updated")).not.toBeInTheDocument()

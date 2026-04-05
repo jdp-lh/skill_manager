@@ -6,7 +6,6 @@ import {
   deleteSkill,
   getConfig,
   listSkills,
-  openSkillsFolder,
   readSkillFile,
   saveConfig,
   syncAll,
@@ -15,7 +14,7 @@ import {
 } from "../lib/api";
 import { UserRole } from "../lib/permissions";
 
-export type AppView = "skills" | "tools" | "marketplace" | "settings" | "feedback";
+export type AppView = "skills" | "tools" | "marketplace";
 
 export type Notice = {
   type: "success" | "error";
@@ -101,14 +100,6 @@ export const deleteSkillEntry = createAsyncThunk(
   }
 );
 
-export const openSkillFolder = createAsyncThunk(
-  "workspace/openSkillFolder",
-  async (successMessage: string) => {
-    await openSkillsFolder();
-    return successMessage;
-  }
-);
-
 export const loadSkillContent = createAsyncThunk(
   "workspace/loadSkillContent",
   async (path: string) => {
@@ -170,7 +161,6 @@ const rejectedMatcher = (action: { type: string }) =>
   action.type === createSkillEntry.rejected.type ||
   action.type === saveSkillEntry.rejected.type ||
   action.type === deleteSkillEntry.rejected.type ||
-  action.type === openSkillFolder.rejected.type ||
   action.type === loadSkillContent.rejected.type ||
   action.type === runToolSkillTest.rejected.type;
 
@@ -196,9 +186,6 @@ const workspaceSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(openSkillFolder.fulfilled, (state, action) => {
-        state.notice = { type: "success", message: action.payload };
-      })
       .addCase(loadSkillContent.fulfilled, (state, action) => {
         state.activeSkillPath = action.payload.path;
         state.activeSkillContent = action.payload.content;

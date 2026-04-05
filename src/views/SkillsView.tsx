@@ -8,7 +8,6 @@ type SkillsViewProps = {
   skills: SkillEntry[];
   saving: boolean;
   onRefresh: () => void;
-  onOpenFolder: () => void;
   onCreateSkill: (name: string) => Promise<void>;
   onDeleteSkill: (skill: SkillEntry) => Promise<void>;
   onReadSkill: (path: string) => Promise<string>;
@@ -21,7 +20,6 @@ export function SkillsView({
   skills,
   saving,
   onRefresh,
-  onOpenFolder,
   onCreateSkill,
   onDeleteSkill,
   onReadSkill,
@@ -43,31 +41,13 @@ export function SkillsView({
     [search, skills]
   );
 
-  useEffect(() => {
-    if (!editingSkill) {
-      return;
-    }
-    // #region debug-point C:skills-editor-opened
-    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "C", location: "SkillsView.tsx:46", msg: "[DEBUG] editingSkill state updated", data: { skillName: editingSkill.name, isDir: editingSkill.is_dir }, ts: Date.now() }) }).catch(() => {});
-    // #endregion
-  }, [editingSkill]);
-
   const openEditor = async (skill: SkillEntry) => {
-    // #region debug-point B:skills-open-editor-click
-    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "B", location: "SkillsView.tsx:51", msg: "[DEBUG] openEditor invoked", data: { skillName: skill.name, path: skill.path, isDir: skill.is_dir }, ts: Date.now() }) }).catch(() => {});
-    // #endregion
     setLoading(true);
     try {
       const fileContent = await onReadSkill(skill.path);
-      // #region debug-point B:skills-read-success
-      fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "B", location: "SkillsView.tsx:56", msg: "[DEBUG] skill content loaded", data: { skillName: skill.name, length: fileContent.length }, ts: Date.now() }) }).catch(() => {});
-      // #endregion
       setContent(fileContent);
       setEditingSkill(skill);
     } catch (error) {
-      // #region debug-point B:skills-read-failed
-      fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "B", location: "SkillsView.tsx:62", msg: "[DEBUG] skill content load failed", data: { skillName: skill.name, message: error instanceof Error ? error.message : String(error) }, ts: Date.now() }) }).catch(() => {});
-      // #endregion
       console.error("Failed to read skill:", error);
     } finally {
       setLoading(false);
@@ -187,13 +167,6 @@ export function SkillsView({
             />
           </div>
           <button
-            onClick={onOpenFolder}
-            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
-          >
-            <FolderOpen className="h-4 w-4" />
-            {labels.openFolder}
-          </button>
-          <button
             onClick={() => setShowCreate(true)}
             disabled={saving}
             className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
@@ -240,9 +213,6 @@ export function SkillsView({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // #region debug-point A:skills-edit-button-click
-                fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "A", location: "SkillsView.tsx:205", msg: "[DEBUG] skills edit button clicked", data: { skillName: skill.name, disabled: saving }, ts: Date.now() }) }).catch(() => {});
-                // #endregion
                 void openEditor(skill);
               }}
               disabled={saving}

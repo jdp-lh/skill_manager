@@ -25,7 +25,7 @@ const createTool = (tool: Partial<ToolConfig> & Pick<ToolConfig, "name">): ToolC
 
 const defaultConfig = (): AppConfig => ({
   config_version: CURRENT_CONFIG_VERSION,
-  storage_path: "/mock/skills",
+  storage_path: "~/.skills-manager/skills",
   tools: {
     claude: createTool({
       name: "Claude Code",
@@ -69,9 +69,9 @@ const defaultConfig = (): AppConfig => ({
 });
 
 const defaultFiles = () => ({
-  "/mock/skills/analyze_pr.md": "# Analyze PR\n\nReview pull requests with focus on correctness.",
-  "/mock/skills/summarize_logs.md": "# Summarize Logs\n\nExtract error summaries from logs.",
-  "/mock/skills/refactor_plan.md": "# Refactor Plan\n\nGenerate a staged refactor plan.",
+  "~/.skills-manager/skills/analyze_pr.md": "# Analyze PR\n\nReview pull requests with focus on correctness.",
+  "~/.skills-manager/skills/summarize_logs.md": "# Summarize Logs\n\nExtract error summaries from logs.",
+  "~/.skills-manager/skills/refactor_plan.md": "# Refactor Plan\n\nGenerate a staged refactor plan.",
 });
 
 const readStorage = <T,>(key: string, fallback: T): T => {
@@ -240,8 +240,6 @@ export const syncAll = async () => {
   const config = getConfigInternal();
   saveConfigInternal(config);
 };
-
-export const openSkillsFolder = async () => {};
 
 export const testToolSkill = async (
   toolId: string,

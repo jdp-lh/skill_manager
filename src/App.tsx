@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
-import { PlaceholderView } from "./views/PlaceholderView";
 import { SkillsView } from "./views/SkillsView";
 import { ToolsView } from "./views/ToolsView";
 import { MarketplaceView } from "./views/MarketplaceView";
@@ -13,7 +12,6 @@ import {
   createSkillEntry,
   deleteSkillEntry,
   loadWorkspace,
-  openSkillFolder,
   persistWorkspaceConfig,
   runToolSkillTest,
   saveSkillEntry,
@@ -28,8 +26,6 @@ const i18n = {
     skills: "Skills",
     tools: "Tools",
     marketplace: "Marketplace",
-    settings: "Settings",
-    feedback: "Feedback",
     refresh: "刷新",
     loading: "加载中...",
     language: "语言",
@@ -37,7 +33,6 @@ const i18n = {
     admin: "管理员",
     editor: "编辑者",
     viewer: "访客",
-    openFolder: "打开目录",
     newSkill: "新增 Skill",
     searchSkills: "搜索 skill 名称",
     searchTools: "搜索 tool 名称或标签",
@@ -100,12 +95,9 @@ const i18n = {
     directory: "目录",
     file: "文件",
     marketplacePlaceholder: "从社区发现和安装新的 skills",
-    settingsPlaceholder: "设置中心后续可继续承接全局首选项、目录扫描与权限策略。",
-    feedbackPlaceholder: "反馈中心后续可接入问题反馈、建议收集与诊断信息上报。",
     skillCreated: "Skill 已创建",
     skillDeleted: "Skill 已删除",
     skillSaved: "Skill 已保存",
-    folderOpened: "已打开 Skill 目录",
     marketplaceHint: "浏览和安装社区共享的 skills",
     searchMarketplace: "搜索 marketplace...",
     featured: "精选推荐",
@@ -126,8 +118,6 @@ const i18n = {
     skills: "Skills",
     tools: "Tools",
     marketplace: "Marketplace",
-    settings: "Settings",
-    feedback: "Feedback",
     refresh: "Refresh",
     loading: "Loading...",
     language: "Language",
@@ -135,7 +125,6 @@ const i18n = {
     admin: "Admin",
     editor: "Editor",
     viewer: "Viewer",
-    openFolder: "Open Folder",
     newSkill: "New Skill",
     searchSkills: "Search skills",
     searchTools: "Search tools by name or tag",
@@ -197,13 +186,9 @@ const i18n = {
     pathSavedThroughEdit: "Edit the tool to update paths",
     directory: "Directory",
     file: "File",
-    marketplacePlaceholder: "Discover and install new skills from the community",
-    settingsPlaceholder: "Settings can later host global preferences, scanning rules, and policies.",
-    feedbackPlaceholder: "Feedback can later host issue submission and diagnostics reporting.",
     skillCreated: "Skill created",
     skillDeleted: "Skill deleted",
     skillSaved: "Skill saved",
-    folderOpened: "Skills folder opened",
     marketplaceHint: "Browse and install community-shared skills",
     searchMarketplace: "Search marketplace...",
     featured: "Featured",
@@ -265,12 +250,6 @@ export default function App() {
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [dispatch, notice]);
-
-  useEffect(() => {
-    // #region debug-point C:active-view-changed
-    fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "C", location: "App.tsx:246", msg: "[DEBUG] activeView changed", data: { activeView }, ts: Date.now() }) }).catch(() => {});
-    // #endregion
-  }, [activeView]);
 
   const overview = useMemo(
     () => ({
@@ -429,7 +408,6 @@ export default function App() {
                 skills={skills}
                 saving={saving}
                 onRefresh={() => void dispatch(loadWorkspace())}
-                onOpenFolder={() => void dispatch(openSkillFolder(labels.folderOpened))}
                 onCreateSkill={handleCreateSkill}
                 onDeleteSkill={handleDeleteSkill}
                 onReadSkill={async (path) => {
@@ -469,20 +447,6 @@ export default function App() {
                 onDownloadSuccess={() => {
                   void dispatch(loadWorkspace());
                 }}
-              />
-            )}
-
-            {activeView === "settings" && (
-              <PlaceholderView
-                title={labels.settings}
-                description={labels.settingsPlaceholder}
-              />
-            )}
-
-            {activeView === "feedback" && (
-              <PlaceholderView
-                title={labels.feedback}
-                description={labels.feedbackPlaceholder}
               />
             )}
           </div>

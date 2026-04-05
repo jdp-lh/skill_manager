@@ -25,7 +25,6 @@ pub fn run() {
             skills::read_skill_file,
             skills::write_skill_file,
             skills::delete_skill,
-            skills::open_skills_folder,
             skills::test_tool_skill,
             marketplace::get_marketplace_listings,
             marketplace::get_marketplace_categories,
