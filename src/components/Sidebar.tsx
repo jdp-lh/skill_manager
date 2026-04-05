@@ -31,17 +31,17 @@ export function Sidebar({ activeView, labels, onSelect, overview, storagePath }:
       </div>
       
       <div className="border-b border-gray-100 px-4 py-4 grid grid-cols-3 gap-2 text-center hidden md:grid">
-        <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-          <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Tools</span>
-          <span className="text-sm font-bold text-gray-900">{overview.toolCount}</span>
+        <div className="flex flex-col items-center justify-center rounded-xl bg-blue-50/50 border border-blue-100/50 py-2.5 transition-colors hover:bg-blue-50">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">Agents</span>
+          <span className="text-base font-bold text-blue-950 mt-0.5">{overview.toolCount}</span>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-          <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Skills</span>
-          <span className="text-sm font-bold text-gray-900">{overview.skillCount}</span>
+        <div className="flex flex-col items-center justify-center rounded-xl bg-emerald-50/50 border border-emerald-100/50 py-2.5 transition-colors hover:bg-emerald-50">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">Skills</span>
+          <span className="text-base font-bold text-emerald-950 mt-0.5">{overview.skillCount}</span>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-          <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Links</span>
-          <span className="text-sm font-bold text-gray-900">{overview.linkCount}</span>
+        <div className="flex flex-col items-center justify-center rounded-xl bg-violet-50/50 border border-violet-100/50 py-2.5 transition-colors hover:bg-violet-50">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">Links</span>
+          <span className="text-base font-bold text-violet-950 mt-0.5">{overview.linkCount}</span>
         </div>
       </div>
 
