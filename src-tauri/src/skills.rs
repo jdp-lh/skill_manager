@@ -9,6 +9,7 @@ pub struct SkillEntry {
     pub is_dir: bool,
     pub last_modified: u64,
     pub path: String,
+    pub description: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,8 +52,85 @@ fn resolve_skill_content_path(path: &str) -> Result<PathBuf, String> {
     Ok(skill_path)
 }
 
+fn extract_skill_description(path: &PathBuf) -> String {
+    let content_path = resolve_skill_content_path(&path.to_string_lossy()).ok();
+
+    let Some(content_path) = content_path else {
+        return String::new();
+    };
+
+    let Ok(content) = fs::read_to_string(content_path) else {
+        return String::new();
+    };
+
+    let mut in_frontmatter = false;
+    let mut description_from_fm = String::new();
+    let mut lines = content.lines().map(str::trim).peekable();
+    
+    if let Some(&first_line) = lines.peek() {
+        if first_line == "---" {
+            in_frontmatter = true;
+            lines.next(); 
+        }
+    }
+
+    while let Some(line) = lines.next() {
+        if in_frontmatter {
+            if line == "---" {
+                in_frontmatter = false;
+                continue;
+            }
+            if line.to_lowercase().starts_with("description:") {
+                let desc = line[12..].trim();
+                let desc = desc.trim_matches(|c| c == '"' || c == '\'');
+                description_from_fm = desc.to_string();
+            }
+        } else {
+            if line.is_empty() {
+                continue;
+            }
+            
+            if let Some(start) = content.find("<description>") {
+                let content_start = start + 13;
+                if let Some(end) = content[content_start..].find("</description>") {
+                    return content[content_start..content_start+end].trim().to_string();
+                }
+            }
+
+            if !description_from_fm.is_empty() {
+                return description_from_fm;
+            }
+
+            if line.starts_with('#') {
+                let lower = line.to_lowercase();
+                if lower == "## description" || lower == "# description" {
+                    while let Some(next_line) = lines.next() {
+                        if !next_line.is_empty() {
+                            return next_line.to_string();
+                        }
+                    }
+                }
+                continue;
+            }
+
+            if line.starts_with("---") {
+                continue;
+            }
+            
+            return line.to_string();
+        }
+    }
+
+    if !description_from_fm.is_empty() {
+        return description_from_fm;
+    }
+
+    String::new()
+}
+
 #[tauri::command]
 pub fn list_skills(dir: String) -> Result<Vec<SkillEntry>, String> {
+    println!("DEBUG: list_skills called for dir: {}", dir);
     let mut entries = Vec::new();
     let path = PathBuf::from(&dir);
     
@@ -82,6 +160,7 @@ pub fn list_skills(dir: String) -> Result<Vec<SkillEntry>, String> {
                 is_dir,
                 last_modified,
                 path: path.to_string_lossy().to_string(),
+                description: extract_skill_description(&path),
             });
         }
     }

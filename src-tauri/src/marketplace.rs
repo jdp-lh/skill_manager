@@ -289,30 +289,65 @@ pub async fn download_marketplace_skill(
     id: String,
     storage_path: String,
 ) -> Result<String, String> {
-    // Fetch the skill details first
-    let listing = get_marketplace_listing_detail(id.clone()).await?;
-
-    // Generate skill content
-    let skill_content = listing.content.clone().unwrap_or_else(|| generate_skill_content(&listing));
-
     // Resolve storage path
     let mut dest_path = PathBuf::from(&storage_path);
-    if dest_path.starts_with("~/") {
+    if storage_path.starts_with("~/") {
         if let Some(home) = dirs::home_dir() {
             let mut p = home;
-            p.push(&dest_path.to_string_lossy().to_string()[2..]);
+            p.push(&storage_path[2..]);
             dest_path = p;
         }
     }
 
-    fs::create_dir_all(&dest_path).map_err(|e| e.to_string())?;
+    // Determine the final directory name for the skill
+    let skill_name = id.split('/').last().unwrap_or("unknown_skill");
+    let target_dir = dest_path.join(skill_name);
+    fs::create_dir_all(&target_dir).map_err(|e| format!("Failed to create skill directory: {}", e))?;
 
-    let file_name = format!("{}.md", listing.name.to_lowercase().replace(' ', "-"));
-    let file_path = dest_path.join(&file_name);
+    // The download URL is derived from the API endpoint
+    let download_url = format!("{}/skills/download/{}", API_BASE_URL, id);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&download_url)
+        .timeout(std::time::Duration::from_secs(60))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download zip: {}", e))?;
 
-    fs::write(&file_path, skill_content).map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("Failed to download zip from {}, status code: {}", download_url, response.status()));
+    }
 
-    Ok(file_path.to_string_lossy().to_string())
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read zip bytes: {}", e))?;
+
+    let temp_dir = std::env::temp_dir();
+    let temp_zip_path = temp_dir.join(format!("skill_{}.zip", skill_name));
+    
+    fs::write(&temp_zip_path, &bytes).map_err(|e| format!("Failed to write temporary zip file: {}", e))?;
+
+    // Extract using unzip command
+    let output = std::process::Command::new("unzip")
+        .arg("-o")
+        .arg(&temp_zip_path)
+        .arg("-d")
+        .arg(&target_dir)
+        .output()
+        .map_err(|e| {
+            let _ = fs::remove_file(&temp_zip_path);
+            format!("Failed to execute unzip command: {}", e)
+        })?;
+
+    let _ = fs::remove_file(&temp_zip_path);
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Unzip failed: {}", err_msg));
+    }
+
+    Ok("Success".to_string())
 }
 
 #[tauri::command]
@@ -346,44 +381,3 @@ pub async fn get_featured_marketplace_listings() -> Result<Vec<MarketplaceListin
     Ok(listings)
 }
 
-fn generate_skill_content(listing: &MarketplaceListing) -> String {
-    format!(
-        r#"# {name}
-
-## Description
-
-{description}
-
-## Author
-
-{author}
-
-## Version
-
-{version}
-
-## Tags
-
-{tags}
-
-## Installation
-
-1. Download this skill file
-2. Place it in your skills directory
-3. Configure as needed
-
-## Usage
-
-Describe how to use this skill here.
-
-## Configuration
-
-Add any configuration options here.
-"#,
-        name = listing.name,
-        description = listing.description,
-        author = listing.author,
-        version = listing.version,
-        tags = listing.tags.join(", ")
-    )
-}
