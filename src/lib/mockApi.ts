@@ -4,7 +4,6 @@ import type {
   MarketplaceListing,
   MarketplaceListingsResponse,
   SkillEntry,
-  SkillTestResult,
   ToolConfig,
   ToolSkillSettings,
 } from "./api";
@@ -146,18 +145,26 @@ const saveConfigInternal = (config: AppConfig) => {
   return normalized;
 };
 
-const pathForName = (storagePath: string, name: string) => `${storagePath}/${name}`;
-
 const listSkillsInternal = (storagePath: string): SkillEntry[] => {
   const files = getFiles();
   return Object.keys(files)
     .filter((path) => path.startsWith(`${storagePath}/`))
-    .map((path) => ({
-      name: path.split("/").pop() || path,
-      is_dir: false,
-      last_modified: Date.now(),
-      path,
-    }))
+    .map((path) => {
+      const content = files[path] || "";
+      const description =
+        content
+          .split("\n")
+          .map((line) => line.trim())
+          .find((line) => line && !line.startsWith("#")) || "";
+
+      return {
+        name: path.split("/").pop() || path,
+        is_dir: false,
+        last_modified: Date.now(),
+        path,
+        description,
+      };
+    })
     .sort((left, right) =>
       left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: "base" })
     );
@@ -239,39 +246,6 @@ export const toggleLink = async (skillName: string, toolId: string, enable: bool
 export const syncAll = async () => {
   const config = getConfigInternal();
   saveConfigInternal(config);
-};
-
-export const testToolSkill = async (
-  toolId: string,
-  skillName: string
-): Promise<SkillTestResult> => {
-  const config = getConfigInternal();
-  const tool = config.tools[toolId];
-  if (!tool) {
-    throw new Error(`Tool not found: ${toolId}`);
-  }
-
-  const path = pathForName(config.storage_path, skillName);
-  const files = getFiles();
-  const content = files[path];
-  if (!content) {
-    throw new Error(`Skill not found: ${skillName}`);
-  }
-
-  const settings = config.tool_skill_settings[toolId]?.[skillName] || {
-    enabled: true,
-    priority: 0,
-    parameters: {},
-  };
-
-  return {
-    tool_id: toolId,
-    skill_name: skillName,
-    status: "success",
-    message: `${tool.name} 测试通过，共 ${content.split("\n").length} 行内容。`,
-    priority: settings.priority,
-    parameter_count: Object.keys(settings.parameters).length,
-  };
 };
 
 const mockListings: MarketplaceListing[] = [

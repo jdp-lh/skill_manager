@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppConfig, SkillEntry, SkillTestResult, ToolConfig, ToolSkillSettings } from "../lib/api";
-import { FileText, FolderOpen, Search, Trash2, X } from "lucide-react";
+import {
+  AppConfig,
+  SkillEntry,
+  ToolConfig,
+  ToolSkillSettings,
+} from "../lib/api";
+import { readSkillFile } from "../lib/api";
+import {
+  FileText,
+  FolderOpen,
+  Search,
+  Trash2,
+  X,
+  Copy,
+  Check,
+  Plus,
+} from "lucide-react";
 
 type SkillConfigModalProps = {
   labels: Record<string, string>;
@@ -9,21 +24,26 @@ type SkillConfigModalProps = {
   config: AppConfig;
   skills: SkillEntry[];
   saving: boolean;
-  lastTest: SkillTestResult | null;
   onClose: () => void;
-  onSave: (links: string[], settings: Record<string, ToolSkillSettings>) => void;
-  onTest: (skillName: string) => void;
+  onSave: (
+    links: string[],
+    settings: Record<string, ToolSkillSettings>,
+  ) => void;
 };
 
-const parseParameters = (value: string) => {
-  if (!value.trim()) {
-    return {};
-  }
+const extractSkillDescription = (content: string) => {
+  const lines = content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(
+      (line) =>
+        !line.startsWith("#") &&
+        !line.startsWith("---") &&
+        !line.startsWith("```"),
+    );
 
-  const parsed = JSON.parse(value) as Record<string, unknown>;
-  return Object.fromEntries(
-    Object.entries(parsed).map(([key, entry]) => [key, String(entry)])
-  );
+  return lines[0] || "";
 };
 
 export function SkillConfigModal({
@@ -33,10 +53,8 @@ export function SkillConfigModal({
   config,
   skills,
   saving,
-  lastTest,
   onClose,
   onSave,
-  onTest,
 }: SkillConfigModalProps) {
   const associatedLinks = useMemo(
     () =>
@@ -44,42 +62,34 @@ export function SkillConfigModal({
         .filter(([, toolIds]) => toolIds.includes(toolId))
         .map(([skillName]) => skillName)
         .sort((left, right) =>
-          left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" })
+          left.localeCompare(right, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          }),
         ),
-    [config.links, toolId]
+    [config.links, toolId],
   );
 
-  const [selectedSkill, setSelectedSkill] = useState("");
   const [links, setLinks] = useState<string[]>(associatedLinks);
-  const [settings, setSettings] = useState<Record<string, ToolSkillSettings>>(
-    config.tool_skill_settings[toolId] || {}
-  );
-  const [parameterDrafts, setParameterDrafts] = useState<Record<string, string>>({});
   const [linkedSearch, setLinkedSearch] = useState("");
   const [availableSearch, setAvailableSearch] = useState("");
-  const [error, setError] = useState("");
+  const [copiedPath, setCopiedPath] = useState("");
+  const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLinks(associatedLinks);
-    setSettings(config.tool_skill_settings[toolId] || {});
-    setParameterDrafts(
-      Object.fromEntries(
-        Object.entries(config.tool_skill_settings[toolId] || {}).map(([skillName, value]) => [
-          skillName,
-          JSON.stringify(value.parameters || {}, null, 2),
-        ])
-      )
-    );
-  }, [associatedLinks, config.tool_skill_settings, toolId]);
+  }, [associatedLinks]);
 
   const availableSkills = useMemo(
     () =>
       skills
         .filter((skill) => !links.includes(skill.name))
         .filter((skill) =>
-          skill.name.toLowerCase().includes(availableSearch.trim().toLowerCase())
+          skill.name
+            .toLowerCase()
+            .includes(availableSearch.trim().toLowerCase()),
         ),
-    [availableSearch, links, skills]
+    [availableSearch, links, skills],
   );
 
   const linkedSkillEntries = useMemo(
@@ -87,76 +97,83 @@ export function SkillConfigModal({
       links
         .map((skillName) => skills.find((skill) => skill.name === skillName))
         .filter((skill): skill is SkillEntry => Boolean(skill))
-        .filter((skill) => skill.name.toLowerCase().includes(linkedSearch.trim().toLowerCase())),
-    [linkedSearch, links, skills]
+        .filter((skill) =>
+          skill.name.toLowerCase().includes(linkedSearch.trim().toLowerCase()),
+        ),
+    [linkedSearch, links, skills],
   );
 
-  const handleAddSkill = () => {
-    if (!selectedSkill) {
+  useEffect(() => {
+    let active = true;
+    const linkedEntries = skills.filter((skill) => links.includes(skill.name));
+    const missingEntries = linkedEntries.filter(
+      (skill) => descriptions[skill.name] === undefined,
+    );
+
+    if (missingEntries.length === 0) {
       return;
     }
 
+    void Promise.all(
+      missingEntries.map(async (skill) => {
+        try {
+          const content = await readSkillFile(skill.path);
+          return [skill.name, extractSkillDescription(content)] as const;
+        } catch {
+          return [skill.name, ""] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (!active) {
+        return;
+      }
+      setDescriptions((current) => ({
+        ...current,
+        ...Object.fromEntries(entries),
+      }));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [descriptions, links, skills]);
+
+  const handleAddSkill = (skillName: string) => {
     setLinks((current) =>
-      [...current, selectedSkill].sort((left, right) =>
-        left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" })
-      )
+      [...current, skillName].sort((left, right) =>
+        left.localeCompare(right, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      ),
     );
-    setSettings((current) => ({
-      ...current,
-      [selectedSkill]: current[selectedSkill] || {
-        enabled: true,
-        priority: 0,
-        parameters: {},
-      },
-    }));
-    setParameterDrafts((current) => ({
-      ...current,
-      [selectedSkill]: current[selectedSkill] || "{}",
-    }));
-    setSelectedSkill("");
-    setAvailableSearch("");
   };
 
-  const updateSetting = (
-    skillName: string,
-    key: keyof ToolSkillSettings,
-    value: ToolSkillSettings[keyof ToolSkillSettings]
-  ) => {
-    setSettings((current) => ({
-      ...current,
-      [skillName]: {
-        enabled: current[skillName]?.enabled ?? true,
-        priority: current[skillName]?.priority ?? 0,
-        parameters: current[skillName]?.parameters ?? {},
-        [key]: value,
-      },
-    }));
+  const handleAddAll = () => {
+    setLinks((current) =>
+      [...current, ...availableSkills.map((s) => s.name)].sort((left, right) =>
+        left.localeCompare(right, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      ),
+    );
   };
 
   const handleSave = () => {
-    try {
-      for (const skillName of links) {
-        parseParameters(parameterDrafts[skillName] || "{}");
-      }
-      onSave(
-        links,
-        Object.fromEntries(
-          links.map((skillName) => [
-            skillName,
-            {
-              ...(settings[skillName] || {
-                enabled: true,
-                priority: 0,
-                parameters: {},
-              }),
-              parameters: parseParameters(parameterDrafts[skillName] || "{}"),
-            },
-          ])
-        )
-      );
-    } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : String(currentError));
-    }
+    onSave(
+      links,
+      Object.fromEntries(
+        links.map((skillName) => [
+          skillName,
+          config.tool_skill_settings[toolId]?.[skillName] || {
+            enabled: true,
+            priority: 0,
+            parameters: {},
+          },
+        ]),
+      ),
+    );
   };
 
   useEffect(() => {
@@ -169,241 +186,252 @@ export function SkillConfigModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const handleRemoveAll = () => {
+    setLinks([]);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPath(text);
+      setTimeout(() => setCopiedPath(""), 2000);
+    } catch (err) {
+      // fallback
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm transition-opacity"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-5xl rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
+      <div
+        className="flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-[#fcfcfd] shadow-2xl shadow-black/5"
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-start justify-between border-b border-gray-200 bg-white px-6 py-5">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-[20px] font-semibold tracking-[-0.02em] text-gray-950">
               {labels.skillConfigTitle.replace("{tool}", tool.name)}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">{tool.description || labels.skillConfigHint}</p>
+            <p className="mt-1 text-sm text-gray-500">
+              为当前 Tool 选择要关联的 Skills。
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
+            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1.8fr]">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">{labels.availableSkills}</h4>
-                <p className="mt-1 text-xs text-gray-500">{labels.skillConfigHint}</p>
+        <div className="flex-1 overflow-y-auto bg-[#fcfcfd] p-6">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {labels.availableSkills}
+                  </h4>
+                  <p className="mt-1 text-xs text-gray-500">
+                    从本地 skill 列表中选择并关联到当前 Tool。
+                  </p>
+                </div>
+                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
+                  {availableSkills.length}
+                </span>
               </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-600">
-                {availableSkills.length}
-              </span>
-            </div>
-            <div className="relative mt-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-              <input
-                value={availableSearch}
-                onChange={(event) => setAvailableSearch(event.target.value)}
-                placeholder={labels.searchAvailableSkills}
-                className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <select
-              value={selectedSkill}
-              onChange={(event) => setSelectedSkill(event.target.value)}
-              aria-label={labels.selectSkill}
-              className="mt-3 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">{labels.selectSkill}</option>
-              {availableSkills.map((skill) => (
-                <option key={skill.path} value={skill.name}>
-                  {skill.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleAddSkill}
-              disabled={!selectedSkill}
-              className="mt-3 w-full rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-            >
-              {labels.addSkill}
-            </button>
-            {availableSkills.length === 0 && (
-              <div className="mt-3 rounded-xl border border-dashed border-gray-300 bg-white px-3 py-4 text-center text-sm text-gray-500">
-                {labels.noAvailableSkills}
-              </div>
-            )}
-          </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">{labels.linkedSkills}</h4>
-                <p className="mt-1 text-xs text-gray-500">{labels.priorityHint}</p>
+              <div className="mt-4 flex items-center justify-between">
+                <button
+                  onClick={handleAddAll}
+                  disabled={availableSkills.length === 0}
+                  className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-800 disabled:opacity-50"
+                >
+                  全部添加 ({availableSkills.length})
+                </button>
               </div>
-              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                {links.length}
-              </span>
-            </div>
-            <div className="relative mt-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-              <input
-                value={linkedSearch}
-                onChange={(event) => setLinkedSearch(event.target.value)}
-                placeholder={labels.searchLinkedSkills}
-                className="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
 
-        <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-2">
-          {linkedSkillEntries.map((skill) => {
-            const skillName = skill.name;
-            const currentSetting = settings[skillName] || {
-              enabled: true,
-              priority: 0,
-              parameters: {},
-            };
-            return (
-              <div
-                key={skillName}
-                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="relative mt-2">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={availableSearch}
+                  onChange={(event) => setAvailableSearch(event.target.value)}
+                  placeholder={labels.searchAvailableSkills}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+                />
+              </div>
+
+              {availableSkills.length === 0 ? (
+                <div className="mt-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">
+                  {labels.noAvailableSkills}
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2 overflow-y-auto max-h-[400px] pr-1 pb-4">
+                  {availableSkills.map((skill) => (
+                    <button
+                      key={skill.path}
+                      onClick={() => handleAddSkill(skill.name)}
+                      className="group flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm transition hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FileText className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        <span className="truncate font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
+                          {skill.name.endsWith('.md') ? skill.name.slice(0, -3) : skill.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-medium tracking-wide text-gray-500 uppercase transition-colors group-hover:bg-blue-100 group-hover:text-blue-600">
+                          {skill.is_dir ? labels.directory : labels.file}
+                        </span>
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-gray-400 opacity-0 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:opacity-100">
+                          <Plus className="h-3 w-3" />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
+
+            <section className="min-w-0">
+              <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
                   <div>
-                    <h4 className="text-base font-semibold text-gray-900">{skillName}</h4>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        {skill.is_dir ? (
-                          <FolderOpen className="h-3.5 w-3.5" />
-                        ) : (
-                          <FileText className="h-3.5 w-3.5" />
-                        )}
-                        {skill.is_dir ? labels.directory : labels.file}
-                      </span>
-                      <span className="truncate font-mono text-[11px] text-gray-400">{skill.path}</span>
-                    </div>
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {labels.linkedSkills}
+                    </h4>
+                    <p className="mt-1 text-xs text-gray-500">
+                      当前 Tool 已关联的 skills，支持快速移除。
+                    </p>
                   </div>
+                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
+                    {links.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="relative flex-1 md:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                    <input
+                      value={linkedSearch}
+                      onChange={(event) => setLinkedSearch(event.target.value)}
+                      placeholder={labels.searchLinkedSkills}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-gray-400 focus:bg-white focus:ring-2 focus:ring-gray-200"
+                    />
+                  </div>
+                  {links.length > 0 && (
+                    <button
+                      onClick={handleRemoveAll}
+                      className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700"
+                    >
+                      全部移除
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {linkedSkillEntries.map((skill) => {
+              const skillName = skill.name;
+              return (
+                <div
+                  key={skillName}
+                  className="group relative flex min-h-[140px] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
+                >
                   <button
                     onClick={() => {
-                      setLinks((current) => current.filter((item) => item !== skillName));
-                      setSettings((current) => {
-                        const next = { ...current };
-                        delete next[skillName];
-                        return next;
-                      });
-                      setParameterDrafts((current) => {
-                        const next = { ...current };
-                        delete next[skillName];
-                        return next;
-                      });
+                      setLinks((current) =>
+                        current.filter((item) => item !== skillName),
+                      );
                     }}
-                    className="rounded-lg p-2 text-red-600 transition hover:bg-red-50"
+                    className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 opacity-40 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                    title={labels.delete}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_140px_1fr]">
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-gray-700">{labels.enabled}</span>
-                    <div className="flex h-[42px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3">
-                      <input
-                        type="checkbox"
-                        checked={currentSetting.enabled}
-                        onChange={(event) =>
-                          updateSetting(skillName, "enabled", event.target.checked)
-                        }
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {currentSetting.enabled ? labels.enabled : labels.disabled}
-                      </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="pr-8 flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-100/50 bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100/50">
+                        {skill.is_dir ? (
+                          <FolderOpen className="h-5 w-5" />
+                        ) : (
+                          <FileText className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0 justify-center">
+                        <div className="flex items-center gap-2">
+                          <h4 
+                            className="truncate text-sm font-semibold text-gray-900"
+                            title={skillName.endsWith('.md') ? skillName.slice(0, -3) : skillName}
+                          >
+                            {skillName.endsWith('.md') ? skillName.slice(0, -3) : skillName}
+                          </h4>
+                          <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase text-gray-500">
+                            {skill.is_dir ? labels.directory : labels.file}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-gray-700">{labels.priority}</span>
-                    <input
-                      type="number"
-                      value={currentSetting.priority}
-                      onChange={(event) =>
-                        updateSetting(skillName, "priority", Number(event.target.value))
-                      }
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </label>
 
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-gray-700">{labels.parameters}</span>
-                    <textarea
-                      value={parameterDrafts[skillName] ?? JSON.stringify(currentSetting.parameters || {}, null, 2)}
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        setParameterDrafts((current) => ({
-                          ...current,
-                          [skillName]: nextValue,
-                        }));
-                        try {
-                          updateSetting(skillName, "parameters", parseParameters(nextValue));
-                          setError("");
-                        } catch {
-                          setError(labels.parameterFormatError);
-                        }
-                      }}
-                      rows={5}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </label>
-                </div>
+                    <p 
+                      className="mt-3 line-clamp-2 flex-1 text-xs leading-relaxed text-gray-500/90"
+                      title={descriptions[skillName] || labels.skillDescriptionFallback}
+                    >
+                      {descriptions[skillName] || labels.skillDescriptionFallback}
+                    </p>
 
-                <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-                  <div className="text-sm text-gray-600">
-                    {lastTest?.tool_id === toolId && lastTest.skill_name === skillName
-                      ? lastTest.message
-                      : labels.testHint}
+                    <div className="mt-4 pt-3 flex items-center gap-2 border-t border-gray-100/80 text-gray-500">
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-gray-400" title={skill.path}>
+                          {skill.path}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(skill.path)}
+                        className="shrink-0 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors rounded-md"
+                        title="Copy path"
+                      >
+                        {copiedPath === skill.path ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => onTest(skillName)}
-                    className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    {labels.testSkill}
-                  </button>
                 </div>
+              );
+            })}
+
+            {links.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm lg:col-span-2 2xl:col-span-3">
+                {labels.noSkillConfig}
               </div>
-            );
-          })}
+            )}
 
-          {links.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-sm text-gray-500">
-              {labels.noSkillConfig}
-            </div>
-          )}
-
-          {links.length > 0 && linkedSkillEntries.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-sm text-gray-500">
-              {labels.noLinkedSkillsMatched}
-            </div>
-          )}
+            {links.length > 0 && linkedSkillEntries.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm lg:col-span-2 2xl:col-span-3">
+                {labels.noLinkedSkillsMatched}
+              </div>
+            )}
+              </div>
+            </section>
+          </div>
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50/50 px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
           >
             {labels.cancel}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
           >
             {saving ? labels.saving : labels.saveSkillConfig}
           </button>

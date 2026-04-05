@@ -8,12 +8,9 @@ import { SkillEntry, readSkillFile } from "./lib/api";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import {
   clearNotice,
-  clearSkillTest,
-  createSkillEntry,
   deleteSkillEntry,
   loadWorkspace,
   persistWorkspaceConfig,
-  runToolSkillTest,
   saveSkillEntry,
   setActiveView,
   setNotice,
@@ -22,11 +19,12 @@ import {
 const i18n = {
   zh: {
     appTitle: "Skills Manager",
-    sidebarHint: "统一管理你的 tools 与 skills",
+    sidebarHint: "统一管理你的 agents 与 skills",
     skills: "Skills",
-    tools: "Tools",
-    marketplace: "Marketplace",
+    tools: "Agents",
+    marketplace: "技能市场",
     refresh: "刷新",
+    refreshSuccess: "刷新成功",
     loading: "加载中...",
     language: "语言",
     role: "角色",
@@ -50,8 +48,9 @@ const i18n = {
     allTags: "全部标签",
     disabled: "已停用",
     configureSkill: "配置 Skill",
-    configPath: "Config Path",
     skillsPath: "Skills Path",
+    skillsPathRequired: "Skills Path 不能为空",
+    skillsPathHint: "必填，默认：~/.<tool-id>/skills",
     notConfigured: "未配置",
     noToolsFound: "没有匹配的 tool。",
     toolId: "Tool ID",
@@ -61,7 +60,7 @@ const i18n = {
     icon: "图标标识",
     tags: "标签",
     tagsPlaceholder: "用逗号分隔，例如：cli, agent",
-    enabled: "启用该 Tool",
+    enabled: "启用此 Tool",
     invalidToolId: "Tool ID 只能包含字母、数字、下划线和连字符",
     duplicateToolId: "Tool ID 已存在",
     createTool: "新增 Tool",
@@ -83,14 +82,14 @@ const i18n = {
     saveSkillConfig: "保存配置",
     skillConfigSaved: "Skill 配置已保存",
     noSkillConfig: "当前还没有关联的 skill。",
-    linkedSkills: "已关联 Skills",
-    availableSkills: "可添加 Skills",
+    linkedSkills: "已关联 Skill",
+    availableSkills: "可添加 Skill",
     searchLinkedSkills: "搜索已关联的 skill",
     searchAvailableSkills: "搜索可添加的 skill",
     noAvailableSkills: "没有可添加的 skill。",
     noLinkedSkillsMatched: "没有匹配的已关联 skill。",
+    skillDescriptionFallback: "暂无描述，打开文件后可查看完整内容。",
     clickToEditPath: "点击可编辑路径",
-    pathOptional: "可选，不填时保持未配置",
     pathSavedThroughEdit: "通过编辑 Tool 可修改路径",
     directory: "目录",
     file: "文件",
@@ -99,7 +98,7 @@ const i18n = {
     skillDeleted: "Skill 已删除",
     skillSaved: "Skill 已保存",
     marketplaceHint: "浏览和安装社区共享的 skills",
-    searchMarketplace: "搜索 marketplace...",
+    searchMarketplace: "搜索你想要的技能...",
     featured: "精选推荐",
     allCategories: "全部分类",
     viewDetail: "查看详情",
@@ -114,11 +113,12 @@ const i18n = {
   },
   en: {
     appTitle: "Skills Manager",
-    sidebarHint: "Manage your tools and skills in one place",
+    sidebarHint: "Manage your agents and skills in one place",
     skills: "Skills",
-    tools: "Tools",
+    tools: "Agents",
     marketplace: "Marketplace",
     refresh: "Refresh",
+    refreshSuccess: "Refreshed",
     loading: "Loading...",
     language: "Language",
     role: "Role",
@@ -142,8 +142,9 @@ const i18n = {
     allTags: "All Tags",
     disabled: "Disabled",
     configureSkill: "Configure Skill",
-    configPath: "Config Path",
     skillsPath: "Skills Path",
+    skillsPathRequired: "Skills Path is required",
+    skillsPathHint: "Required. Default: ~/.<tool-id>/skills",
     notConfigured: "Not configured",
     noToolsFound: "No matching tools found.",
     toolId: "Tool ID",
@@ -181,8 +182,8 @@ const i18n = {
     searchAvailableSkills: "Search available skills",
     noAvailableSkills: "No skills available to add.",
     noLinkedSkillsMatched: "No linked skills match the search.",
+    skillDescriptionFallback: "No description available yet. Open the file to inspect full content.",
     clickToEditPath: "Click to edit path",
-    pathOptional: "Optional, leave empty if not configured",
     pathSavedThroughEdit: "Edit the tool to update paths",
     directory: "Directory",
     file: "File",
@@ -190,7 +191,7 @@ const i18n = {
     skillDeleted: "Skill deleted",
     skillSaved: "Skill saved",
     marketplaceHint: "Browse and install community-shared skills",
-    searchMarketplace: "Search marketplace...",
+    searchMarketplace: "Search the skills you want...",
     featured: "Featured",
     allCategories: "All Categories",
     viewDetail: "View Detail",
@@ -207,32 +208,9 @@ const i18n = {
 
 type Lang = "zh" | "en";
 
-const createSkillTemplate = (name: string) => `# ${name}
-
-## Goal
-
-Describe the goal of this skill.
-
-## Inputs
-
-- input
-
-## Steps
-
-- Step 1
-- Step 2
-
-## Output
-
-Describe the expected output.
-`;
-
-const isValidSkillName = (value: string) =>
-  Boolean(value.trim()) && !/[\\/]/.test(value) && value !== "." && value !== "..";
-
 export default function App() {
   const dispatch = useAppDispatch();
-  const { activeView, config, error, lastSkillTest, loading, notice, saving, skills } =
+  const { activeView, config, error, loading, notice, saving, skills } =
     useAppSelector((state) => state.workspace);
   const [lang, setLang] = useState<Lang>("zh");
   const labels = i18n[lang];
@@ -259,25 +237,6 @@ export default function App() {
     }),
     [config, skills.length]
   );
-
-  const handleCreateSkill = async (name: string) => {
-    if (!config || !isValidSkillName(name)) {
-      throw new Error("Invalid skill name");
-    }
-    const path = `${config.storage_path}/${name.trim()}`;
-    try {
-      await dispatch(
-        createSkillEntry({
-          path,
-          content: createSkillTemplate(name.trim()),
-          successMessage: labels.skillCreated,
-        })
-      ).unwrap();
-    } catch (e) {
-      console.error('Create skill failed:', e);
-      throw e;
-    }
-  };
 
   const handleDeleteSkill = async (skill: SkillEntry) => {
     try {
@@ -326,9 +285,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-gray-900">
       {notice && (
-        <div className="fixed right-5 top-5 z-[70]">
+        <div className="fixed left-1/2 top-5 z-[70] -translate-x-1/2">
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg ${
+            className={`rounded-2xl border px-6 py-3 text-sm font-medium shadow-lg text-center ${
               notice.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-red-200 bg-red-50 text-red-700"
@@ -345,58 +304,31 @@ export default function App() {
           labels={labels}
           onSelect={(view) => {
             dispatch(setActiveView(view));
-            dispatch(clearSkillTest());
           }}
+          overview={overview}
+          storagePath={config.storage_path}
         />
 
         <main className="flex-1 p-4 md:p-6">
-          <header className="mb-6 rounded-3xl border border-gray-200/80 bg-white px-6 py-4 shadow-sm">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              {/* Left Section: Title, Path, and Stats */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">{labels.appTitle}</h1>
-                  <p className="mt-1 text-[13px] text-gray-500">{config.storage_path}</p>
-                </div>
-
-                <div className="hidden h-8 w-px bg-gray-100 lg:block" />
-
-                <div className="flex gap-2">
-                  <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 px-4 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Tools</span>
-                    <span className="text-base font-bold text-gray-900">{overview.toolCount}</span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 px-4 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Skills</span>
-                    <span className="text-base font-bold text-gray-900">{overview.skillCount}</span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 px-4 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Links</span>
-                    <span className="text-base font-bold text-gray-900">{overview.linkCount}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Section: Controls */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setLang("en")}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    lang === "en" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  }`}
-                >
-                  EN
-                </button>
-                <span className="text-gray-300">/</span>
-                <button
-                  onClick={() => setLang("zh")}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    lang === "zh" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  }`}
-                >
-                  中文
-                </button>
-              </div>
+          <header className="mb-6 flex items-center justify-end">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setLang("en")}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  lang === "en" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                EN
+              </button>
+              <span className="text-gray-300">/</span>
+              <button
+                onClick={() => setLang("zh")}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  lang === "zh" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                中文
+              </button>
             </div>
           </header>
 
@@ -407,8 +339,10 @@ export default function App() {
                 storagePath={config.storage_path}
                 skills={skills}
                 saving={saving}
-                onRefresh={() => void dispatch(loadWorkspace())}
-                onCreateSkill={handleCreateSkill}
+                onRefresh={async () => {
+                  await dispatch(loadWorkspace()).unwrap();
+                  dispatch(setNotice({ type: "success", message: labels.refreshSuccess || "刷新成功" }));
+                }}
                 onDeleteSkill={handleDeleteSkill}
                 onReadSkill={async (path) => {
                   try {
@@ -428,13 +362,12 @@ export default function App() {
                 config={config}
                 skills={skills}
                 saving={saving}
-                lastSkillTest={lastSkillTest}
-                onRefresh={() => void dispatch(loadWorkspace())}
+                onRefresh={async () => {
+                  await dispatch(loadWorkspace()).unwrap();
+                  dispatch(setNotice({ type: "success", message: labels.refreshSuccess || "刷新成功" }));
+                }}
                 onPersistConfig={(nextConfig, successMessage) =>
                   void dispatch(persistWorkspaceConfig({ config: nextConfig, successMessage }))
-                }
-                onTestSkill={(toolId, skillName) =>
-                  void dispatch(runToolSkillTest({ toolId, skillName }))
                 }
               />
             )}
@@ -442,10 +375,17 @@ export default function App() {
             {activeView === "marketplace" && (
               <MarketplaceView
                 labels={labels}
-                storagePath={config.storage_path}
-                onRefresh={() => void dispatch(loadWorkspace())}
-                onDownloadSuccess={() => {
+                storagePath={config?.storage_path || ""}
+                skills={skills}
+                onRefresh={async () => {
+                  await dispatch(loadWorkspace()).unwrap();
+                  dispatch(setNotice({ type: "success", message: labels.refreshSuccess || "刷新成功" }));
+                }}
+                onDownloadSuccess={(msg?: string) => {
                   void dispatch(loadWorkspace());
+                  if (msg) {
+                    dispatch(setNotice({ type: "success", message: msg }));
+                  }
                 }}
               />
             )}

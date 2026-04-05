@@ -30,15 +30,7 @@ export interface SkillEntry {
   is_dir: boolean;
   last_modified: number;
   path: string;
-}
-
-export interface SkillTestResult {
-  tool_id: string;
-  skill_name: string;
-  status: string;
-  message: string;
-  priority: number;
-  parameter_count: number;
+  description: string;
 }
 
 export interface MarketplaceListing {
@@ -81,8 +73,6 @@ const api = isTauriEnvironment
       toggleLink: (skillName: string, toolId: string, enable: boolean) =>
         invoke<void>("toggle_link", { skillName, toolId, enable }),
       syncAll: () => invoke<void>("sync_all"),
-      testToolSkill: (toolId: string, skillName: string) =>
-        invoke<SkillTestResult>("test_tool_skill", { toolId, skillName }),
       // Marketplace APIs
       getMarketplaceListings: (page?: number, pageSize?: number, category?: string, search?: string) =>
         invoke<MarketplaceListingsResponse>("get_marketplace_listings", { page, pageSize, category, search }),
@@ -104,8 +94,6 @@ export const deleteSkill = (path: string) => api.deleteSkill(path);
 export const toggleLink = (skillName: string, toolId: string, enable: boolean) =>
   api.toggleLink(skillName, toolId, enable);
 export const syncAll = () => api.syncAll();
-export const testToolSkill = (toolId: string, skillName: string) =>
-  api.testToolSkill(toolId, skillName);
 
 // Marketplace exports
 export const getMarketplaceListings = (page?: number, pageSize?: number, category?: string, search?: string) =>
