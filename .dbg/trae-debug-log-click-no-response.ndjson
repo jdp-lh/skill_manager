@@ -1,0 +1,10 @@
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "App.tsx:246", "msg": "[DEBUG] activeView changed", "data": {"activeView": "tools"}, "ts": 1775236614458}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "App.tsx:246", "msg": "[DEBUG] activeView changed", "data": {"activeView": "skills"}, "ts": 1775236614635}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "A", "location": "Sidebar.tsx:35", "msg": "[DEBUG] sidebar nav clicked", "data": {"view": "marketplace", "wasActive": false}, "ts": 1775236657880}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "App.tsx:246", "msg": "[DEBUG] activeView changed", "data": {"activeView": "marketplace"}, "ts": 1775236657885}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "A", "location": "Sidebar.tsx:35", "msg": "[DEBUG] sidebar nav clicked", "data": {"view": "tools", "wasActive": false}, "ts": 1775236789343}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "App.tsx:246", "msg": "[DEBUG] activeView changed", "data": {"activeView": "tools"}, "ts": 1775236789356}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "A", "location": "ToolsView.tsx:376", "msg": "[DEBUG] configure skill button clicked", "data": {"toolId": "claude", "toolName": "Claude Code"}, "ts": 1775236793441}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "ToolsView.tsx:53", "msg": "[DEBUG] skill config modal state updated", "data": {"toolId": "claude"}, "ts": 1775236793448}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "A", "location": "ToolsView.tsx:358", "msg": "[DEBUG] tool edit button clicked", "data": {"toolId": "cline", "toolName": "Cline"}, "ts": 1775236805358}
+{"sessionId": "click-no-response", "runId": "pre-fix", "hypothesisId": "C", "location": "ToolsView.tsx:45", "msg": "[DEBUG] tool modal state updated", "data": {"toolId": "cline"}, "ts": 1775236805363}
