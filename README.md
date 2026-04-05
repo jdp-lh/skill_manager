@@ -109,6 +109,18 @@ npm run tauri build -- --bundles dmg
 
 > **提示**：在 macOS 环境下，默认的 `npm run tauri build` 也会在 `src-tauri/target/release/bundle/dmg` 目录下生成 DMG 文件。
 
+### 打包成 Windows 安装包 (EXE / MSI)
+
+若需专门打包为 Windows 下的安装包（需在 Windows 环境下运行），请执行以下命令：
+
+```bash
+# 打包为独立的 exe 安装程序 (基于 NSIS)
+npm run tauri build -- --bundles nsis
+
+# 打包为 MSI 安装包
+npm run tauri build -- --bundles msi
+```
+
 ## 测试
 
 项目使用 Vitest 和 Playwright：
