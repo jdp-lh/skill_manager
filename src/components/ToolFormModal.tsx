@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ToolConfig } from "../lib/api";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
+import { ToolIcon, AVAILABLE_ICONS } from "./ToolIcon";
 
 export type ToolFormValue = {
   id: string;
@@ -15,12 +16,6 @@ type ToolFormModalProps = {
   onClose: () => void;
   onSubmit: (value: ToolFormValue) => void;
 };
-
-const parseTags = (value: string) =>
-  value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
 
 const buildDefaultSkillsPath = (toolId: string) => {
   const trimmedToolId = toolId.trim();
@@ -38,12 +33,10 @@ export function ToolFormModal({
   const [id, setId] = useState(initialValue.id);
   const [name, setName] = useState(initialValue.tool.name);
   const [description, setDescription] = useState(initialValue.tool.description);
-  const [icon, setIcon] = useState(initialValue.tool.icon);
+  const [icon, setIcon] = useState(initialValue.tool.icon || "Bot");
   const [skillsPath, setSkillsPath] = useState(
     initialValue.tool.target_dir || buildDefaultSkillsPath(initialValue.id)
   );
-  const [tagsText, setTagsText] = useState(initialValue.tool.tags.join(", "));
-  const [enabled, setEnabled] = useState(initialValue.tool.enabled);
   const [error, setError] = useState("");
   const [autoSkillsPath, setAutoSkillsPath] = useState(
     !initialValue.tool.target_dir ||
@@ -83,8 +76,8 @@ export function ToolFormModal({
         icon: icon.trim() || "Bot",
         config_path: "",
         target_dir: skillsPath.trim(),
-        tags: parseTags(tagsText),
-        enabled,
+        tags: initialValue.tool.tags || [],
+        enabled: true,
       },
     });
   };
@@ -149,7 +142,73 @@ export function ToolFormModal({
             </label>
           </div>
 
-          <label className="space-y-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2 relative">
+              <span className="text-sm font-medium text-gray-700">{labels.icon}</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-4 transition-colors hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={() => {
+                    const dropdown = document.getElementById("icon-dropdown");
+                    if (dropdown) {
+                      dropdown.classList.toggle("hidden");
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <ToolIcon icon={icon} className="h-5 w-5 text-gray-700" />
+                    <span className="text-sm text-gray-700">{icon}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                </button>
+                <div
+                  id="icon-dropdown"
+                  className="absolute z-10 mt-1 hidden w-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+                >
+                  <div className="grid grid-cols-5 gap-1">
+                    {AVAILABLE_ICONS.map((iconName) => (
+                      <button
+                        key={iconName}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIcon(iconName);
+                          document.getElementById("icon-dropdown")?.classList.add("hidden");
+                        }}
+                        className={`flex aspect-square items-center justify-center rounded-lg transition-all ${
+                          icon === iconName
+                            ? "bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-500"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        title={iconName}
+                      >
+                        <ToolIcon icon={iconName} className="h-5 w-5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-gray-700">{labels.skillsPath}</span>
+              <span className="ml-2 text-xs text-gray-400">{labels.skillsPathHint}</span>
+              <input
+                value={skillsPath}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setSkillsPath(nextValue);
+                  setAutoSkillsPath(nextValue.trim() === buildDefaultSkillsPath(id));
+                  setError("");
+                }}
+                placeholder={buildDefaultSkillsPath(id) || "~/.tool-id/skills"}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+          </div>
+
+          <label className="block space-y-2">
             <span className="text-sm font-medium text-gray-700">{labels.description}</span>
             <textarea
               value={description}
@@ -157,52 +216,6 @@ export function ToolFormModal({
               rows={3}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             />
-          </label>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.icon}</span>
-              <input
-                value={icon}
-                onChange={(event) => setIcon(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.tags}</span>
-              <input
-                value={tagsText}
-                onChange={(event) => setTagsText(event.target.value)}
-                placeholder={labels.tagsPlaceholder}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-          </div>
-
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-gray-700">{labels.skillsPath}</span>
-            <span className="block text-xs text-gray-400">{labels.skillsPathHint}</span>
-            <input
-              value={skillsPath}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setSkillsPath(nextValue);
-                setAutoSkillsPath(nextValue.trim() === buildDefaultSkillsPath(id));
-                setError("");
-              }}
-              placeholder={buildDefaultSkillsPath(id) || "~/.tool-id/skills"}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            />
-          </label>
-
-          <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(event) => setEnabled(event.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">{labels.enabled}</span>
           </label>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
