@@ -1,4 +1,4 @@
-import { Boxes, FileText, MessageSquare, Settings, Store } from "lucide-react";
+import { Boxes, FileText, Store } from "lucide-react";
 import { AppView } from "../store/workspaceSlice";
 
 type SidebarProps = {
@@ -14,8 +14,6 @@ const navItems: Array<{
   { key: "skills", icon: FileText },
   { key: "tools", icon: Boxes },
   { key: "marketplace", icon: Store },
-  { key: "settings", icon: Settings },
-  { key: "feedback", icon: MessageSquare },
 ];
 
 export function Sidebar({ activeView, labels, onSelect }: SidebarProps) {

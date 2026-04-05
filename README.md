@@ -1,5 +1,7 @@
 # Skill Manager
 
+![Skill Manager 截图](screenshot.png)
+
 Skill Manager 是一款基于 Tauri 框架和 React 的桌面应用，用于集中管理、配置和测试你的各种开发工具与技能 (Skills)。它集成了一个 Marketplace 能够让你方便地发现和管理相关能力。
 
 ## 主要特性
