@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Settings2, Trash2, Check, X } from "lucide-react";
-import { AppConfig, SkillEntry, SkillTestResult, ToolConfig, ToolSkillSettings } from "../lib/api";
+import { AppConfig, SkillEntry, ToolConfig, ToolSkillSettings } from "../lib/api";
 import { ToolFormModal, ToolFormValue } from "../components/ToolFormModal";
 import { SkillConfigModal } from "../components/SkillConfigModal";
 import { ToolIcon } from "../components/ToolIcon";
@@ -10,10 +10,8 @@ type ToolsViewProps = {
   config: AppConfig;
   skills: SkillEntry[];
   saving: boolean;
-  lastSkillTest: SkillTestResult | null;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   onPersistConfig: (config: AppConfig, successMessage: string) => void;
-  onTestSkill: (toolId: string, skillName: string) => void;
 };
 
 const compareNames = (left: string, right: string) =>
@@ -24,22 +22,23 @@ const buildToolEntries = (tools: AppConfig["tools"]) =>
     compareNames(left[1].name || left[0], right[1].name || right[0])
   );
 
+const buildDefaultSkillsPath = (toolId: string) => `~/.${toolId}/skills`;
+
 export function ToolsView({
   labels,
   config,
   skills,
   saving,
-  lastSkillTest,
   onRefresh,
   onPersistConfig,
-  onTestSkill,
 }: ToolsViewProps) {
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string>("all");
+  const [refreshing, setRefreshing] = useState(false);
   const [toolModal, setToolModal] = useState<ToolFormValue | null>(null);
   const [skillConfigToolId, setSkillConfigToolId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ toolId: string; tool: ToolConfig } | null>(null);
-  const [pathValues, setPathValues] = useState<Record<string, { config_path: string; target_dir: string }>>({});
+  const [pathValues, setPathValues] = useState<Record<string, { target_dir: string }>>({});
 
   const toolEntries = useMemo(() => buildToolEntries(config.tools), [config.tools]);
 
@@ -145,7 +144,8 @@ export function ToolsView({
     );
   };
 
-  const handlePathChange = (toolId: string, field: 'config_path' | 'target_dir', value: string) => {
+  const handlePathChange = (toolId: string, value: string) => {
+    const normalizedValue = value.trim() || buildDefaultSkillsPath(toolId);
     onPersistConfig(
       {
         ...config,
@@ -153,7 +153,7 @@ export function ToolsView({
           ...config.tools,
           [toolId]: {
             ...config.tools[toolId],
-            [field]: value,
+            target_dir: normalizedValue,
           },
         },
       },
@@ -221,10 +221,18 @@ export function ToolsView({
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={onRefresh}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await onRefresh();
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              disabled={refreshing}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {labels.refresh}
             </button>
             <button
@@ -327,43 +335,6 @@ export function ToolsView({
               {/* Paths */}
               <div className="mt-5 space-y-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 text-xs font-medium text-gray-400">{labels.configPath}</span>
-                  <input
-                    type="text"
-                    value={pathValues[toolId]?.config_path ?? tool.config_path}
-                    onChange={(e) => setPathValues(prev => ({
-                      ...prev,
-                      [toolId]: {
-                        ...prev[toolId],
-                        config_path: e.target.value
-                      }
-                    }))}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const values = pathValues[toolId] || {};
-                        handlePathChange(toolId, 'config_path', values.config_path ?? tool.config_path);
-                        if (values.target_dir !== undefined) {
-                          handlePathChange(toolId, 'target_dir', values.target_dir);
-                        }
-                        setPathValues(prev => {
-                          const newValues = { ...prev };
-                          delete newValues[toolId];
-                          return newValues;
-                        });
-                      } else if (e.key === 'Escape') {
-                        setPathValues(prev => {
-                          const newValues = { ...prev };
-                          delete newValues[toolId];
-                          return newValues;
-                        });
-                      }
-                    }}
-                    placeholder={labels.notConfigured}
-                    className="h-9 flex-1 rounded-xl border border-gray-200 bg-white px-3 font-mono text-xs text-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    aria-label={`${labels.configPath} for ${tool.name}`}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
                   <span className="w-20 shrink-0 text-xs font-medium text-gray-400">{labels.skillsPath}</span>
                   <input
                     type="text"
@@ -371,17 +342,13 @@ export function ToolsView({
                     onChange={(e) => setPathValues(prev => ({
                       ...prev,
                       [toolId]: {
-                        ...prev[toolId],
                         target_dir: e.target.value
                       }
                     }))}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         const values = pathValues[toolId] || {};
-                        if (values.config_path !== undefined) {
-                          handlePathChange(toolId, 'config_path', values.config_path);
-                        }
-                        handlePathChange(toolId, 'target_dir', values.target_dir ?? tool.target_dir);
+                        handlePathChange(toolId, values.target_dir ?? tool.target_dir);
                         setPathValues(prev => {
                           const newValues = { ...prev };
                           delete newValues[toolId];
@@ -395,12 +362,12 @@ export function ToolsView({
                         });
                       }
                     }}
-                    placeholder={labels.notConfigured}
+                    placeholder={buildDefaultSkillsPath(toolId)}
                     className="h-9 flex-1 rounded-xl border border-gray-200 bg-white px-3 font-mono text-xs text-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     aria-label={`${labels.skillsPath} for ${tool.name}`}
                   />
                 </div>
-                {(pathValues[toolId]?.config_path !== undefined || pathValues[toolId]?.target_dir !== undefined) && (
+                {pathValues[toolId]?.target_dir !== undefined && (
                   <div className="flex justify-end gap-2 mt-1">
                     <button
                       onClick={() => {
@@ -418,11 +385,8 @@ export function ToolsView({
                     <button
                       onClick={() => {
                         const values = pathValues[toolId] || {};
-                        if (values.config_path !== undefined) {
-                          handlePathChange(toolId, 'config_path', values.config_path);
-                        }
                         if (values.target_dir !== undefined) {
-                          handlePathChange(toolId, 'target_dir', values.target_dir);
+                          handlePathChange(toolId, values.target_dir);
                         }
                         setPathValues(prev => {
                           const newValues = { ...prev };
@@ -457,36 +421,31 @@ export function ToolsView({
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex w-full items-center gap-2 mt-1 sm:mt-0 sm:w-auto sm:ml-auto">
                 <button
                   onClick={() => setToolModal({ id: toolId, tool })}
                   disabled={isViewer}
-                  className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
                   aria-label={`${labels.edit} ${tool.name}`}
                 >
-                  <Settings2 className="h-4 w-4" />
+                  <Settings2 className="h-3.5 w-3.5" />
+                  {labels.editTool}
                 </button>
                 <button
-                  onClick={() => setToolModal({ id: toolId, tool })}
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+                  onClick={() => setSkillConfigToolId(toolId)}
+                  disabled={isViewer}
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
                 >
-                  {labels.editTool}
+                  <Settings2 className="h-3.5 w-3.5 opacity-80" />
+                  {labels.configureSkill}
                 </button>
                 <button
                   onClick={() => setDeleteTarget({ toolId, tool })}
                   disabled={isViewer}
-                  className="rounded-xl p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  className="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-2 text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                   aria-label={`${labels.delete} ${tool.name}`}
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
-                <div className="mx-1 h-4 w-px bg-gray-200" />
-                <button
-                  onClick={() => setSkillConfigToolId(toolId)}
-                  disabled={isViewer}
-                  className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-                >
-                  {labels.configureSkill}
                 </button>
               </div>
             </div>
@@ -519,10 +478,8 @@ export function ToolsView({
           config={config}
           skills={skills}
           saving={saving}
-          lastTest={lastSkillTest}
           onClose={() => setSkillConfigToolId(null)}
           onSave={(links, settings) => handleSaveSkillConfig(skillConfigToolId, links, settings)}
-          onTest={(skillName) => onTestSkill(skillConfigToolId, skillName)}
         />
       )}
 

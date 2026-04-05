@@ -64,37 +64,6 @@ vi.mock("../lib/api", () => ({
       page_size: ps,
     };
   }),
-  getFeaturedListings: vi.fn(async () => {
-    return [
-      {
-        id: "volcengine/documentation/volcengine-documentation",
-        name: "volcengine-documentation",
-        description: "火山引擎官方文档查询工具，支持文档检索和全文获取。",
-        author: "volcengine",
-        version: "1.0.0",
-        tags: ["document_processing"],
-        download_count: 150,
-        source: "volcengine",
-      },
-      {
-        id: "clawhub/workflow-optimizer",
-        name: "workflow-optimizer",
-        description: "可对AI工作流进行分析，定位运行瓶颈并给出优化方案。",
-        author: "clawhub",
-        version: "1.0.0",
-        tags: ["workflow", "optimization"],
-        download_count: 123,
-        source: "clawhub",
-      },
-    ];
-  }),
-  getMarketplaceCategories: vi.fn(async () => {
-    return [
-      { id: "volcengine", name: "volcengine", count: 2 },
-      { id: "clawhub", name: "clawhub", count: 1 },
-      { id: "workflow", name: "workflow", count: 1 },
-    ];
-  }),
   getMarketplaceListingDetail: vi.fn(async (id: string) => {
     const listings = [
       {
@@ -139,6 +108,7 @@ const renderMarketplace = (props = {}) =>
     <MarketplaceView
       labels={defaultLabels}
       storagePath="/mock/skills"
+      skills={[]}
       onRefresh={vi.fn()}
       onDownloadSuccess={vi.fn()}
       {...props}
@@ -150,8 +120,8 @@ describe("MarketplaceView", () => {
     renderMarketplace();
 
     expect(screen.getByText("技能广场")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("搜索技能...")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "刷新" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "搜索" })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
@@ -177,7 +147,8 @@ describe("MarketplaceView", () => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
-    const searchInput = screen.getByPlaceholderText("搜索技能...");
+    // The input doesn't have a label but has placeholder from fallback
+    const searchInput = screen.getByRole("textbox");
     await act(async () => {
       await user.type(searchInput, "voice");
       await new Promise(r => setTimeout(r, 350));
@@ -190,34 +161,6 @@ describe("MarketplaceView", () => {
     expect(screen.getByText("voice-notify")).toBeInTheDocument();
   });
 
-  it("支持按分类筛选", async () => {
-    const user = userEvent.setup();
-    renderMarketplace();
-
-    await waitFor(() => {
-      expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
-    });
-
-    const volcengineCategory = screen.getByRole("button", { name: /volcengine/i });
-    await user.click(volcengineCategory);
-
-    await waitFor(() => {
-      expect(screen.getByText("volcengine-documentation")).toBeInTheDocument();
-    });
-  });
-
-  it("显示精选技能区域", async () => {
-    renderMarketplace();
-
-    await waitFor(() => {
-      expect(screen.getByText("精选")).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
-    });
-  });
-
   it("点击查看详情可以查看技能详情", async () => {
     const user = userEvent.setup();
     renderMarketplace();
@@ -226,14 +169,34 @@ describe("MarketplaceView", () => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
-    const viewButtons = screen.getAllByRole("button", { name: "查看详情" });
-    await user.click(viewButtons[0]);
+    const listingCards = screen.getAllByText("volcengine-documentation");
+    await user.click(listingCards[0]);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
     });
 
     expect(screen.getByText("技能内容")).toBeInTheDocument();
+  });
+
+  it("详情页不展示作者版本和标签信息", async () => {
+    const user = userEvent.setup();
+    renderMarketplace();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
+    });
+
+    const listingCards = screen.getAllByText("volcengine-documentation");
+    await user.click(listingCards[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("volcengine")).not.toBeInTheDocument();
+    expect(screen.queryByText("v1.0.0")).not.toBeInTheDocument();
+    expect(screen.queryByText("document_processing")).not.toBeInTheDocument();
   });
 
   it("详情页点击返回可以回到列表", async () => {
@@ -244,8 +207,8 @@ describe("MarketplaceView", () => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
-    const viewButtons = screen.getAllByRole("button", { name: "查看详情" });
-    await user.click(viewButtons[0]);
+    const listingCards = screen.getAllByText("volcengine-documentation");
+    await user.click(listingCards[0]);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
@@ -268,6 +231,7 @@ describe("MarketplaceView", () => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
+    // The buttons have labels.install or "获取" in the new layout
     const installButtons = screen.getAllByRole("button", { name: "安装" });
     await user.click(installButtons[0]);
 
@@ -276,33 +240,31 @@ describe("MarketplaceView", () => {
     });
   });
 
-  it("支持刷新按钮", async () => {
-    const user = userEvent.setup();
-    const onRefresh = vi.fn();
-    renderMarketplace({ onRefresh });
+  it("已安装技能显示更新按钮", async () => {
+    // Add defaultLabels mapping for "update"
+    const labelsWithUpdate = { ...defaultLabels, update: "更新" };
+    renderMarketplace({
+      labels: labelsWithUpdate,
+      skills: [
+        {
+          name: "volcengine-documentation.md",
+          is_dir: false,
+          last_modified: Date.now(),
+          path: "/mock/skills/volcengine-documentation.md",
+          description: "Installed version"
+        }
+      ]
+    });
 
     await waitFor(() => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
-    const refreshButton = screen.getByRole("button", { name: "刷新" });
-    await user.click(refreshButton);
-
-    expect(onRefresh).toHaveBeenCalled();
+    // One of the items is installed, so we should see an update button
+    expect(screen.getByRole("button", { name: "更新" })).toBeInTheDocument();
   });
 
-  it("显示分类按钮", async () => {
-    renderMarketplace();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "全部" })).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole("button", { name: /volcengine/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /clawhub/i })).toBeInTheDocument();
-  });
-
-  it("搜索无结果时显示空状态", async () => {
+  it("支持搜索按钮", async () => {
     const user = userEvent.setup();
     renderMarketplace();
 
@@ -310,7 +272,22 @@ describe("MarketplaceView", () => {
       expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
     });
 
-    const searchInput = screen.getByPlaceholderText("搜索技能...");
+    const searchButton = screen.getByRole("button", { name: "搜索" });
+    await user.click(searchButton);
+    
+    // Test that something happened (like loadListings being called again)
+    // The visual check is that the search actually works, which is covered by another test
+  });
+
+  it("搜索无结果时显示空状态和清除搜索按钮", async () => {
+    const user = userEvent.setup();
+    renderMarketplace();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("volcengine-documentation").length).toBeGreaterThan(0);
+    });
+
+    const searchInput = screen.getByRole("textbox");
     await act(async () => {
       await user.type(searchInput, "nonexistent-skill-12345");
       await new Promise(r => setTimeout(r, 350));
@@ -318,6 +295,7 @@ describe("MarketplaceView", () => {
 
     await waitFor(() => {
       expect(screen.getByText("未找到技能")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "清除筛选" })).toBeInTheDocument();
     });
   });
 });

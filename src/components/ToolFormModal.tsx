@@ -22,6 +22,11 @@ const parseTags = (value: string) =>
     .map((tag) => tag.trim())
     .filter(Boolean);
 
+const buildDefaultSkillsPath = (toolId: string) => {
+  const trimmedToolId = toolId.trim();
+  return trimmedToolId ? `~/.${trimmedToolId}/skills` : "";
+};
+
 export function ToolFormModal({
   title,
   labels,
@@ -34,11 +39,16 @@ export function ToolFormModal({
   const [name, setName] = useState(initialValue.tool.name);
   const [description, setDescription] = useState(initialValue.tool.description);
   const [icon, setIcon] = useState(initialValue.tool.icon);
-  const [configPath, setConfigPath] = useState(initialValue.tool.config_path);
-  const [skillsPath, setSkillsPath] = useState(initialValue.tool.target_dir);
+  const [skillsPath, setSkillsPath] = useState(
+    initialValue.tool.target_dir || buildDefaultSkillsPath(initialValue.id)
+  );
   const [tagsText, setTagsText] = useState(initialValue.tool.tags.join(", "));
   const [enabled, setEnabled] = useState(initialValue.tool.enabled);
   const [error, setError] = useState("");
+  const [autoSkillsPath, setAutoSkillsPath] = useState(
+    !initialValue.tool.target_dir ||
+      initialValue.tool.target_dir === buildDefaultSkillsPath(initialValue.id)
+  );
 
   const duplicated = useMemo(
     () => id.trim() !== initialValue.id && existingIds.includes(id.trim()),
@@ -60,6 +70,10 @@ export function ToolFormModal({
       setError(labels.toolNameRequired);
       return;
     }
+    if (!skillsPath.trim()) {
+      setError(labels.skillsPathRequired);
+      return;
+    }
 
     onSubmit({
       id: trimmedId,
@@ -67,7 +81,7 @@ export function ToolFormModal({
         name: name.trim(),
         description: description.trim(),
         icon: icon.trim() || "Bot",
-        config_path: configPath.trim(),
+        config_path: "",
         target_dir: skillsPath.trim(),
         tags: parseTags(tagsText),
         enabled,
@@ -84,6 +98,12 @@ export function ToolFormModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    if (autoSkillsPath) {
+      setSkillsPath(buildDefaultSkillsPath(id));
+    }
+  }, [autoSkillsPath, id]);
 
   return (
     <div
@@ -159,28 +179,21 @@ export function ToolFormModal({
             </label>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.configPath}</span>
-              <span className="block text-xs text-gray-400">{labels.pathOptional}</span>
-              <input
-                value={configPath}
-                onChange={(event) => setConfigPath(event.target.value)}
-                placeholder="~/.tool/config"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">{labels.skillsPath}</span>
-              <span className="block text-xs text-gray-400">{labels.pathOptional}</span>
-              <input
-                value={skillsPath}
-                onChange={(event) => setSkillsPath(event.target.value)}
-                placeholder="~/.tool/skills"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-          </div>
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-gray-700">{labels.skillsPath}</span>
+            <span className="block text-xs text-gray-400">{labels.skillsPathHint}</span>
+            <input
+              value={skillsPath}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setSkillsPath(nextValue);
+                setAutoSkillsPath(nextValue.trim() === buildDefaultSkillsPath(id));
+                setError("");
+              }}
+              placeholder={buildDefaultSkillsPath(id) || "~/.tool-id/skills"}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            />
+          </label>
 
           <label className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
             <input

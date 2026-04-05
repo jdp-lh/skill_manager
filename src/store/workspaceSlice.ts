@@ -2,14 +2,12 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   AppConfig,
   SkillEntry,
-  SkillTestResult,
   deleteSkill,
   getConfig,
   listSkills,
   readSkillFile,
   saveConfig,
   syncAll,
-  testToolSkill,
   writeSkillFile,
 } from "../lib/api";
 import { UserRole } from "../lib/permissions";
@@ -41,11 +39,6 @@ type SaveSkillPayload = {
 type DeleteSkillPayload = {
   path: string;
   successMessage: string;
-};
-
-type TestSkillPayload = {
-  toolId: string;
-  skillName: string;
 };
 
 type WorkspaceData = {
@@ -108,11 +101,6 @@ export const loadSkillContent = createAsyncThunk(
   }
 );
 
-export const runToolSkillTest = createAsyncThunk(
-  "workspace/runToolSkillTest",
-  async ({ toolId, skillName }: TestSkillPayload) => testToolSkill(toolId, skillName)
-);
-
 export interface WorkspaceState {
   config: AppConfig | null;
   skills: SkillEntry[];
@@ -124,7 +112,6 @@ export interface WorkspaceState {
   notice: Notice | null;
   activeSkillContent: string;
   activeSkillPath: string | null;
-  lastSkillTest: SkillTestResult | null;
 }
 
 const initialState: WorkspaceState = {
@@ -138,7 +125,6 @@ const initialState: WorkspaceState = {
   notice: null,
   activeSkillContent: "",
   activeSkillPath: null,
-  lastSkillTest: null,
 };
 
 const successMatcher = (action: { type: string }) =>
@@ -161,8 +147,7 @@ const rejectedMatcher = (action: { type: string }) =>
   action.type === createSkillEntry.rejected.type ||
   action.type === saveSkillEntry.rejected.type ||
   action.type === deleteSkillEntry.rejected.type ||
-  action.type === loadSkillContent.rejected.type ||
-  action.type === runToolSkillTest.rejected.type;
+  action.type === loadSkillContent.rejected.type;
 
 const workspaceSlice = createSlice({
   name: "workspace",
@@ -180,19 +165,12 @@ const workspaceSlice = createSlice({
     setNotice(state, action: PayloadAction<Notice | null>) {
       state.notice = action.payload;
     },
-    clearSkillTest(state) {
-      state.lastSkillTest = null;
-    },
   },
   extraReducers: (builder) => {
     builder
       .addCase(loadSkillContent.fulfilled, (state, action) => {
         state.activeSkillPath = action.payload.path;
         state.activeSkillContent = action.payload.content;
-      })
-      .addCase(runToolSkillTest.fulfilled, (state, action) => {
-        state.lastSkillTest = action.payload;
-        state.notice = { type: "success", message: action.payload.message };
       })
       .addMatcher(pendingMatcher, (state, action) => {
         state.error = null;
@@ -224,7 +202,7 @@ const workspaceSlice = createSlice({
   },
 });
 
-export const { clearNotice, clearSkillTest, setActiveView, setNotice, setRole } =
+export const { clearNotice, setActiveView, setNotice, setRole } =
   workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

@@ -7,7 +7,8 @@ test("编辑 Skill 测试", async ({ page }) => {
   await page.goto("/");
 
   await page.getByRole("button", { name: "Skills" }).click();
-  await expect(page.getByRole("heading", { name: "refactor_plan.md" })).toBeVisible();
+  // Name display logic hides the .md extension now
+  await expect(page.getByRole("heading", { name: "refactor_plan" })).toBeVisible();
 
   await page.getByRole("button", { name: "编辑 Skill" }).first().click();
   await expect(page.getByRole("textbox")).toBeVisible();

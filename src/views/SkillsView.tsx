@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { FileText, FolderOpen, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { FileText, FolderOpen, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
 import { SkillEntry } from "../lib/api";
 
 type SkillsViewProps = {
@@ -7,8 +7,7 @@ type SkillsViewProps = {
   storagePath: string;
   skills: SkillEntry[];
   saving: boolean;
-  onRefresh: () => void;
-  onCreateSkill: (name: string) => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   onDeleteSkill: (skill: SkillEntry) => Promise<void>;
   onReadSkill: (path: string) => Promise<string>;
   onSaveSkill: (skill: SkillEntry, content: string) => Promise<void>;
@@ -20,7 +19,6 @@ export function SkillsView({
   skills,
   saving,
   onRefresh,
-  onCreateSkill,
   onDeleteSkill,
   onReadSkill,
   onSaveSkill,
@@ -29,8 +27,7 @@ export function SkillsView({
   const [editingSkill, setEditingSkill] = useState<SkillEntry | null>(null);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newSkillName, setNewSkillName] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SkillEntry | null>(null);
 
   const filteredSkills = useMemo(
@@ -81,19 +78,6 @@ export function SkillsView({
       setDeleteTarget(null);
     }
   };
-  useEffect(() => {
-    if (showCreate) {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-          setShowCreate(false);
-          setNewSkillName("");
-        }
-      };
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [showCreate]);
-
 
   if (editingSkill) {
     return (
@@ -151,10 +135,18 @@ export function SkillsView({
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            onClick={onRefresh}
-            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+            onClick={async () => {
+              setRefreshing(true);
+              try {
+                await onRefresh();
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
+            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             {labels.refresh}
           </button>
           <div className="relative w-full sm:w-64">
@@ -166,14 +158,6 @@ export function SkillsView({
               className="w-full rounded-xl border border-gray-300 py-1.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            disabled={saving}
-            className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            {labels.newSkill}
-          </button>
         </div>
       </div>
 
@@ -190,8 +174,18 @@ export function SkillsView({
                     <FileText className="h-6 w-6" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold text-gray-900">{skill.name}</h2>
-                    <p className="mt-0.5 truncate font-mono text-[11px] text-gray-400">{skill.path}</p>
+                    <h2 
+                      className="truncate text-sm font-semibold text-gray-900"
+                      title={skill.name.endsWith('.md') ? skill.name.slice(0, -3) : skill.name}
+                    >
+                      {skill.name.endsWith('.md') ? skill.name.slice(0, -3) : skill.name}
+                    </h2>
+                    <p 
+                      className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500/90"
+                      title={skill.description || labels.skillDescriptionFallback || "暂无描述"}
+                    >
+                      {skill.description || labels.skillDescriptionFallback || "暂无描述"}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -227,60 +221,6 @@ export function SkillsView({
       {filteredSkills.length === 0 && (
         <div className="rounded-3xl border border-dashed border-gray-300 bg-white py-16 text-center text-sm text-gray-500">
           {labels.noSkillsFound}
-        </div>
-      )}
-
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm transition-opacity"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowCreate(false);
-              setNewSkillName("");
-            }
-          }}
-        >
-          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
-            <div className="border-b border-gray-100 px-6 py-4">
-              <h3 className="text-base font-semibold text-gray-900">{labels.createSkill}</h3>
-            </div>
-            <div className="px-6 py-5">
-              <label htmlFor="skill-name" className="mb-1.5 block text-sm font-medium text-gray-700">
-                Skill Name
-              </label>
-              <input
-                id="skill-name"
-                autoFocus
-                value={newSkillName}
-                onChange={(event) => setNewSkillName(event.target.value)}
-                placeholder={labels.skillNamePlaceholder}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div className="border-t border-gray-50 bg-gray-50/50 px-6 py-4 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCreate(false);
-                  setNewSkillName("");
-                }}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
-              >
-                {labels.cancel}
-              </button>
-              <button
-                onClick={async () => {
-                  if (!newSkillName.trim()) return;
-                  await onCreateSkill(newSkillName);
-                  setShowCreate(false);
-                  setNewSkillName("");
-                }}
-                disabled={!newSkillName.trim()}
-                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-              >
-                {labels.save}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
