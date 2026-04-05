@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Settings2, Trash2, Check, X } from "lucide-react";
 import { AppConfig, SkillEntry, SkillTestResult, ToolConfig, ToolSkillSettings } from "../lib/api";
-import { ToolFormModal, ToolFormValue } from "./ToolFormModal";
-import { SkillConfigModal } from "./SkillConfigModal";
-import { ToolIcon } from "./ToolIcon";
+import { ToolFormModal, ToolFormValue } from "../components/ToolFormModal";
+import { SkillConfigModal } from "../components/SkillConfigModal";
+import { ToolIcon } from "../components/ToolIcon";
 
 type ToolsViewProps = {
   labels: Record<string, string>;
@@ -221,6 +221,9 @@ export function ToolsView({
     setSkillConfigToolId(null);
   };
 
+  const role = new URLSearchParams(window.location.search).get("role") || "admin";
+  const isViewer = role === "viewer";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -252,7 +255,7 @@ export function ToolsView({
                   },
                 })
               }
-              disabled={false}
+              disabled={isViewer}
               className="flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
@@ -320,7 +323,7 @@ export function ToolsView({
                       className="peer sr-only"
                       checked={tool.enabled}
                       onChange={(event) => handleToggleEnabled(toolId, event.target.checked)}
-                      disabled={false}
+                      disabled={isViewer}
                     />
                     <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-colors peer-checked:bg-blue-500 peer-disabled:opacity-50 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
                   </label>
@@ -475,7 +478,7 @@ export function ToolsView({
                     // #endregion
                     setToolModal({ id: toolId, tool });
                   }}
-                  disabled={false}
+                  disabled={isViewer}
                   className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
                   aria-label={`${labels.edit} ${tool.name}`}
                 >
@@ -489,7 +492,7 @@ export function ToolsView({
                 </button>
                 <button
                   onClick={() => handleDeleteTool(toolId, tool)}
-                  disabled={false}
+                  disabled={isViewer}
                   className="rounded-xl p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                   aria-label={`${labels.delete} ${tool.name}`}
                 >
@@ -503,7 +506,7 @@ export function ToolsView({
                     // #endregion
                     setSkillConfigToolId(toolId);
                   }}
-                  disabled={false}
+                  disabled={isViewer}
                   className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
                 >
                   {labels.configureSkill}
