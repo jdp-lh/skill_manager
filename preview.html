@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Manager</title>
+    <!-- 使用 Tailwind CSS 进行快速样式构建 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 简单的自定义动画和样式，让其更像一个桌面端应用 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
+        .sidebar { background-color: #f9fafb; border-right: 1px solid #e5e7eb; }
+        .active-nav { background-color: #e5edff; color: #2563eb; font-weight: 500; border-radius: 0.375rem; }
+        .skill-card { transition: all 0.2s; border: 1px solid #e5e7eb; }
+        .skill-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); border-color: #cbd5e1; }
+        .modal { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+    </style>
+</head>
+<body class="h-screen w-full overflow-hidden flex flex-col text-gray-800">
+
+    <!-- 顶部标题栏 (模拟桌面应用的 Header) -->
+    <div class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 drag-region">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">S</div>
+            <h1 class="text-lg font-semibold text-gray-900">Skills Manager</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.3dicons.com/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                全局同步链接
+            </button>
+            <button class="text-gray-500 hover:text-gray-800 p-2">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧侧边栏 (Sidebar) -->
+        <div class="w-64 sidebar flex flex-col p-4 shrink-0">
+            <!-- 搜索框 -->
+            <div class="relative mb-6">
+                <input type="text" placeholder="搜索技能..." class="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <!-- 中心库 -->
+            <div class="mb-2">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">中心库 (Central)</p>
+                <button class="w-full text-left px-3 py-2 active-nav flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    全部技能 (All Skills)
+                </button>
+            </div>
+
+            <div class="my-4 border-t border-gray-200"></div>
+
+            <!-- 工具环境管理 -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">AI 工具环境 (Tools)</p>
+                    <button class="text-gray-400 hover:text-blue-500"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
+                </div>
+                
+                <div class="space-y-1">
+                    <button class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-3 group">
+                        <div class="w-5 h-5 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">C</div>
+                        <span class="flex-1 text-sm">Claude Code</span>
+                        <span class="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">8</span>
+                    </button>
+                    <button class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-3 group">
+                        <div class="w-5 h-5 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">X</div>
+                        <span class="flex-1 text-sm">Codex</span>
+                        <span class="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">3</span>
+                    </button>
+                    <button class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-3 group">
+                        <div class="w-5 h-5 rounded bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">O</div>
+                        <span class="flex-1 text-sm">Opencode</span>
+                        <span class="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">1</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 存储路径提示 -->
+            <div class="mt-auto pt-4 text-xs text-gray-400 truncate" title="~/.skills-manager/skills">
+                存储: ~/.skills-manager/skills
+            </div>
+        </div>
+
+        <!-- 主内容区 (Main Content) -->
+        <div class="flex-1 flex flex-col bg-white overflow-hidden">
+            <!-- 工具栏 -->
+            <div class="h-16 px-8 flex items-center justify-between border-b border-gray-100 shrink-0">
+                <h2 class="text-xl font-bold text-gray-800">全部技能 (12)</h2>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        导入现有技能
+                    </button>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        新建技能
+                    </button>
+                </div>
+            </div>
+
+            <!-- 技能列表区 -->
+            <div class="flex-1 overflow-y-auto p-8 bg-gray-50">
+                
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    
+                    <!-- Skill Card 1 (已链接多个) -->
+                    <div class="skill-card bg-white rounded-xl p-5 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 leading-tight">代码规范检查器</h3>
+                                    <p class="text-xs text-gray-500 font-mono mt-0.5">lint_checker.py</p>
+                                </div>
+                            </div>
+                            <!-- 右侧操作按钮 -->
+                            <div class="flex gap-2">
+                                <button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="编辑"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                                <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="删除"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 line-clamp-2 mb-4 flex-1">
+                            自动分析当前代码文件，确保其符合公司的 PEP8 和 ESLint 内部规范，并在提交前给出修改建议。
+                        </p>
+                        
+                        <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-auto">
+                            <!-- 已链接的工具徽章 -->
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs text-gray-500 mr-1">已链接至:</span>
+                                <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full border border-orange-200">Claude</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200">Codex</span>
+                            </div>
+                            <!-- 链接管理按钮 -->
+                            <button class="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1" onclick="document.getElementById('link-modal').classList.remove('hidden')">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                管理软链接
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Skill Card 2 (未链接) -->
+                    <div class="skill-card bg-white rounded-xl p-5 flex flex-col h-full border-dashed border-2">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 leading-tight">API 文档生成器</h3>
+                                    <p class="text-xs text-gray-500 font-mono mt-0.5">api_doc_gen.py</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                                <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-gray-500 line-clamp-2 mb-4 flex-1 italic">
+                            基于项目中的注释自动生成 Markdown 格式的 API 接口文档，目前还在开发中。
+                        </p>
+                        
+                        <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-auto">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">未启用 / 未链接</span>
+                            </div>
+                            <button class="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1" onclick="document.getElementById('link-modal').classList.remove('hidden')">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                立即分配
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理软链接的弹窗 (Modal) - 默认隐藏，点击卡片右下角显示 -->
+    <div id="link-modal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-96 max-w-md mx-4 overflow-hidden border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">分配技能</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">将 "代码规范检查器" 链接到以下环境</p>
+                </div>
+                <button class="text-gray-400 hover:text-gray-700" onclick="document.getElementById('link-modal').classList.add('hidden')">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-3">
+                <!-- Checkbox Items -->
+                <label class="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">C</div>
+                        <span class="text-sm font-medium text-blue-900">Claude Code</span>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                </label>
+                
+                <label class="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">X</div>
+                        <span class="text-sm font-medium text-blue-900">Codex</span>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                </label>
+                
+                <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">O</div>
+                        <span class="text-sm font-medium text-gray-700">Opencode</span>
+                    </div>
+                    <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                </label>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                <button class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900" onclick="document.getElementById('link-modal').classList.add('hidden')">取消</button>
+                <button class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm" onclick="document.getElementById('link-modal').classList.add('hidden')">保存链接 (Sync)</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
