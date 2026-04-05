@@ -110,6 +110,12 @@ pub fn write_skill_file(path: String, content: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn delete_skill(path: String) -> Result<(), String> {
+    println!("Deleting skill at path: {}", path);
+    let p = std::path::PathBuf::from(&path);
+    if !p.exists() {
+        println!("Path does not exist, skipping deletion.");
+        return Ok(());
+    }
     let p = PathBuf::from(&path);
     if p.is_dir() {
         fs::remove_dir_all(&p).map_err(|e| e.to_string())

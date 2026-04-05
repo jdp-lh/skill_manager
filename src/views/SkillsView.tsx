@@ -33,6 +33,7 @@ export function SkillsView({
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newSkillName, setNewSkillName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<SkillEntry | null>(null);
 
   const filteredSkills = useMemo(
     () =>
@@ -67,7 +68,7 @@ export function SkillsView({
       // #region debug-point B:skills-read-failed
       fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "click-no-response", runId: "pre-fix", hypothesisId: "B", location: "SkillsView.tsx:62", msg: "[DEBUG] skill content load failed", data: { skillName: skill.name, message: error instanceof Error ? error.message : String(error) }, ts: Date.now() }) }).catch(() => {});
       // #endregion
-      alert(`Failed to read skill: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Failed to read skill:", error);
     } finally {
       setLoading(false);
     }
@@ -88,6 +89,17 @@ export function SkillsView({
   const handleCancel = () => {
     setEditingSkill(null);
     setContent("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await onDeleteSkill(deleteTarget);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleteTarget(null);
+    }
   };
   useEffect(() => {
     if (showCreate) {
@@ -210,7 +222,11 @@ export function SkillsView({
                   </div>
                 </div>
                 <button
-                  onClick={() => onDeleteSkill(skill)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteTarget(skill);
+                  }}
                   className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
                   aria-label={`${labels.delete} ${skill.name}`}
                 >
@@ -292,6 +308,42 @@ export function SkillsView({
                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
               >
                 {labels.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm transition-opacity"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="px-6 py-5">
+              <h3 className="text-base font-semibold text-gray-900">{labels.delete}</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                {labels.confirmDeleteTool
+                  ? labels.confirmDeleteTool.replace("{tool}", deleteTarget.name)
+                  : `${labels.delete} ${deleteTarget.name}?`}
+              </p>
+            </div>
+            <div className="border-t border-gray-50 bg-gray-50/50 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+              >
+                {labels.cancel}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+              >
+                {labels.delete}
               </button>
             </div>
           </div>

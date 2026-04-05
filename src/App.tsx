@@ -18,6 +18,7 @@ import {
   runToolSkillTest,
   saveSkillEntry,
   setActiveView,
+  setNotice,
 } from "./store/workspaceSlice";
 
 const i18n = {
@@ -285,25 +286,32 @@ export default function App() {
       throw new Error("Invalid skill name");
     }
     const path = `${config.storage_path}/${name.trim()}`;
-    await dispatch(
-      createSkillEntry({
-        path,
-        content: createSkillTemplate(name.trim()),
-        successMessage: labels.skillCreated,
-      })
-    ).unwrap();
+    try {
+      await dispatch(
+        createSkillEntry({
+          path,
+          content: createSkillTemplate(name.trim()),
+          successMessage: labels.skillCreated,
+        })
+      ).unwrap();
+    } catch (e) {
+      console.error('Create skill failed:', e);
+      throw e;
+    }
   };
 
   const handleDeleteSkill = async (skill: SkillEntry) => {
-    if (!window.confirm(`${labels.delete} ${skill.name}?`)) {
-      return;
+    try {
+      await dispatch(
+        deleteSkillEntry({
+          path: skill.path,
+          successMessage: labels.skillDeleted,
+        })
+      ).unwrap();
+    } catch (e) {
+      console.error("Delete failed in App.tsx:", e);
+      dispatch(setNotice({ type: "error", message: `${labels.delete} failed: ${String(e)}` }));
     }
-    await dispatch(
-      deleteSkillEntry({
-        path: skill.path,
-        successMessage: labels.skillDeleted,
-      })
-    ).unwrap();
   };
 
   const handleSaveSkill = async (skill: SkillEntry, content: string) => {
