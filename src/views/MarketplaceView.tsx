@@ -436,7 +436,7 @@ function MarketplaceListingDetailView({
         <h3 className="text-base font-semibold text-gray-900">{labels.skillContent}</h3>
         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
           <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700">
-            {generateSkillPreview(listing)}
+            {listing.content || generateSkillPreview(listing)}
           </pre>
         </div>
       </div>

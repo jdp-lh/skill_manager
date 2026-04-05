@@ -38,17 +38,26 @@ struct FindSkillApiResponse {
     #[serde(rename = "Skills")]
     skills: Vec<FindSkillSkill>,
     #[serde(rename = "Total")]
-
+    total: i64,
 }
 
 #[derive(Debug, Deserialize)]
 struct FindSkillDetailApiResponse {
     #[serde(rename = "Skill")]
     skill: FindSkillSkill,
-
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct FindSkillSkillMetadata {
+    #[serde(rename = "DisplayDescription")]
+    display_description: Option<String>,
+    #[serde(rename = "Files")]
+    files: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct FindSkillSkill {
     #[serde(rename = "Slug")]
     slug: String,
@@ -70,6 +79,8 @@ struct FindSkillSkill {
     created_at: String,
     #[serde(rename = "UpdatedAt")]
     updated_at: String,
+    #[serde(rename = "Metadata")]
+    metadata: Option<FindSkillSkillMetadata>,
 }
 
 // Convert FindSkill API skill to our MarketplaceListing format
@@ -89,10 +100,18 @@ fn convert_findskill_to_listing(skill: &FindSkillSkill) -> MarketplaceListing {
         .unwrap_or("unknown")
         .to_string();
 
+    // Prefer Chinese display description from metadata, fallback to English description
+    let description = skill
+        .metadata
+        .as_ref()
+        .and_then(|m| m.display_description.clone())
+        .filter(|d| !d.is_empty())
+        .unwrap_or_else(|| skill.description.clone());
+
     MarketplaceListing {
         id: skill.slug.clone(),
         name: skill.name.clone(),
-        description: skill.description.clone(),
+        description,
         author,
         version: "1.0.0".to_string(), // API doesn't provide version
         tags,
