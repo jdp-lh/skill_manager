@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
-import { PlaceholderView } from "./components/PlaceholderView";
-import { SkillsView } from "./components/SkillsView";
-import { ToolsView } from "./components/ToolsView";
-import { MarketplaceView } from "./components/MarketplaceView";
+import { PlaceholderView } from "./views/PlaceholderView";
+import { SkillsView } from "./views/SkillsView";
+import { ToolsView } from "./views/ToolsView";
+import { MarketplaceView } from "./views/MarketplaceView";
 import { SkillEntry, readSkillFile } from "./lib/api";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import {
