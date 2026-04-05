@@ -89,6 +89,19 @@ export function SkillsView({
     setEditingSkill(null);
     setContent("");
   };
+  useEffect(() => {
+    if (showCreate) {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          setShowCreate(false);
+          setNewSkillName("");
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showCreate]);
+
 
   if (editingSkill) {
     return (
@@ -133,19 +146,6 @@ export function SkillsView({
       </div>
     );
   }
-
-  useEffect(() => {
-    if (showCreate) {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-          setShowCreate(false);
-          setNewSkillName("");
-        }
-      };
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [showCreate]);
 
   return (
     <div className="space-y-6">
